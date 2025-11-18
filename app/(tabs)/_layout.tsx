@@ -1,57 +1,97 @@
+/**
+ * ANPIP TAB NAVIGATION
+ * 
+ * 5 Haupt-Tabs: Feed, Explore, Upload, Notifications, Profile
+ */
+
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors as ThemeColors } from '@/constants/Theme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
+        tabBarActiveTintColor: ThemeColors.primary,
+        tabBarInactiveTintColor: ThemeColors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: ThemeColors.background,
+          borderTopColor: ThemeColors.divider,
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        headerShown: false, // Wir haben eigene Header in den Screens
       }}>
+      
+      {/* Feed - Hauptseite */}
+      <Tabs.Screen
+        name="feed"
+        options={{
+          title: 'Feed',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Explore - Entdecken */}
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Entdecken',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="search" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Upload - Video hochladen (zentraler Button) */}
+      <Tabs.Screen
+        name="upload"
+        options={{
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="add-circle" size={48} color={ThemeColors.primary} />
+          ),
+        }}
+      />
+
+      {/* Notifications - Benachrichtigungen */}
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Aktivität',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="notifications" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Profile - Profil */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profil',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Alte Screens verstecken */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
+          href: null, // Versteckt den Tab
         }}
       />
       <Tabs.Screen
         name="two"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          href: null, // Versteckt den Tab
         }}
       />
     </Tabs>

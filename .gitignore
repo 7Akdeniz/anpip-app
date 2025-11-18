@@ -30,7 +30,13 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+.env.local
+.env.production
 
 # typescript
 *.tsbuildinfo
+
+# Supabase (wichtig: Geheime Keys nicht committen!)
+.env.supabase
