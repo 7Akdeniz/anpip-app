@@ -44,9 +44,9 @@ export default function TabLayout() {
         headerShown: false, // Wir haben eigene Header in den Screens
       }}>
       
-      {/* Feed - Hauptseite */}
+      {/* Index/Feed - Hauptseite */}
       <Tabs.Screen
-        name="feed"
+        name="index"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
@@ -124,13 +124,15 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Alte Screens verstecken */}
+      {/* Feed-Tab verstecken (Feed ist jetzt auf index) */}
       <Tabs.Screen
-        name="index"
+        name="feed"
         options={{
           href: null, // Versteckt den Tab
         }}
       />
+      
+      {/* Two verstecken */}
       <Tabs.Screen
         name="two"
         options={{

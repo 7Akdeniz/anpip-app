@@ -40,3 +40,4 @@ yarn-error.*
 
 # Supabase (wichtig: Geheime Keys nicht committen!)
 .env.supabase
+.vercel
