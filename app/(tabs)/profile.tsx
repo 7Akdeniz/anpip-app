@@ -1,14 +1,16 @@
 /**
- * PROFILE SCREEN - Benutzerprofil
+ * PROFILE SCREEN - iPhone 17 Futuristic Design
  * 
- * Profilbild, Stats, Bio, Videos, Likes
+ * Transparenter Hintergrund mit vielen Icons wie im Feed
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Typography, PrimaryButton, IconButton, Card } from '@/components/ui';
-import { Colors, Spacing, BorderRadius } from '@/constants/Theme';
+import { View, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
+import { Typography } from '@/components/ui';
+import { Spacing } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { CustomRepeatIcon } from '@/components/CustomRepeatIcon';
 
 // Dummy-Videos
 const DUMMY_VIDEOS = Array.from({ length: 12 }, (_, i) => ({
@@ -17,124 +19,145 @@ const DUMMY_VIDEOS = Array.from({ length: 12 }, (_, i) => ({
   likes: Math.floor(Math.random() * 10000),
 }));
 
+type TopTab = 'videos' | 'likes' | 'public';
+
 export default function ProfileScreen() {
-  const [activeTab, setActiveTab] = useState<'videos' | 'likes'>('videos');
+  const [activeTab, setActiveTab] = useState<TopTab>('videos');
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header mit Einstellungen */}
-      <View style={styles.header}>
-        <Typography variant="h3">Mein Profil</Typography>
-        <IconButton
-          icon="settings-outline"
-          onPress={() => console.log('Einstellungen')}
-          size={36}
-          backgroundColor="transparent"
-          color={Colors.text}
-        />
-      </View>
-
-      {/* Profilbild & Benutzername */}
-      <View style={styles.profileSection}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={60} color={Colors.primary} />
-          </View>
-          <IconButton
-            icon="camera"
-            onPress={() => console.log('Profilbild ändern')}
-            size={32}
-            backgroundColor={Colors.primary}
-            color={Colors.background}
-            style={styles.cameraButton}
-          />
+    <View style={styles.container}>
+      {/* Top Bar mit Icons wie im Feed */}
+      <View style={styles.topBar}>
+        <View style={styles.topBarContent}>
+          <TouchableOpacity style={styles.topBarButton}>
+            <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={{ width: 40 }} />
+          <TouchableOpacity style={styles.topBarButton}>
+            <Ionicons name="menu-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
-
-        <Typography variant="h2" align="center" style={styles.username}>
-          @deinusername
-        </Typography>
-        
-        <Typography variant="body" align="center" color={Colors.textSecondary} style={styles.bio}>
-          Willkommen auf meinem Anpip-Profil! 🎬✨
-        </Typography>
       </View>
 
-      {/* Stats */}
-      <View style={styles.stats}>
-        <StatItem label="Follower" value="1.2k" />
-        <View style={styles.statDivider} />
-        <StatItem label="Following" value="234" />
-        <View style={styles.statDivider} />
-        <StatItem label="Likes" value="5.4k" />
-      </View>
-
-      {/* Profil bearbeiten Button */}
-      <View style={styles.actions}>
-        <PrimaryButton
-          title="Profil bearbeiten"
-          onPress={() => console.log('Profil bearbeiten')}
-          variant="outlined"
-          fullWidth
-        />
-      </View>
-
-      {/* Tabs: Videos / Likes */}
-      <View style={styles.tabs}>
-        <TabButton
-          icon="grid-outline"
-          label="Videos"
-          isActive={activeTab === 'videos'}
-          onPress={() => setActiveTab('videos')}
-        />
-        <TabButton
-          icon="heart-outline"
-          label="Likes"
-          isActive={activeTab === 'likes'}
-          onPress={() => setActiveTab('likes')}
-        />
-      </View>
-
-      {/* Videos Grid */}
-      <View style={styles.grid}>
-        {DUMMY_VIDEOS.map((video) => (
-          <View key={video.id} style={styles.gridItem}>
-            <View style={styles.videoThumbnail}>
-              <Ionicons name="play" size={32} color={Colors.background} />
-            </View>
-            <View style={styles.videoStats}>
-              <View style={styles.videoStat}>
-                <Ionicons name="play" size={12} color={Colors.background} />
-                <Typography variant="caption" color={Colors.background} style={{ marginLeft: 4 }}>
-                  {formatNumber(video.views)}
-                </Typography>
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Profilkarte */}
+        <View style={styles.profileCard}>
+          {/* Profilbild mit Glow */}
+          <View style={styles.avatarSection}>
+            <View style={styles.avatarGlow}>
+              <View style={styles.avatarIconContainer}>
+                <Ionicons name="person-circle-outline" size={180} color="rgba(255, 255, 255, 0.8)" />
               </View>
             </View>
-          </View>
-        ))}
-      </View>
 
-      {activeTab === 'videos' && DUMMY_VIDEOS.length === 0 && (
-        <View style={styles.emptyState}>
-          <Ionicons name="videocam-outline" size={80} color={Colors.textSecondary} />
-          <Typography variant="h3" align="center" color={Colors.textSecondary} style={{ marginTop: Spacing.md }}>
-            Noch keine Videos
-          </Typography>
-          <Typography variant="caption" align="center" color={Colors.textSecondary}>
-            Erstelle dein erstes Video!
-          </Typography>
+            {/* Camera Button */}
+            <TouchableOpacity style={styles.cameraButtonContainer}>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                style={styles.cameraButton}
+              >
+                <Ionicons name="camera" size={16} color="#FFFFFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          {/* Name & Bio */}
+          <View style={styles.infoSection}>
+            <Typography variant="h3" style={styles.fullName}>
+              Vorname Nachname
+            </Typography>
+            
+            <View style={styles.usernameRow}>
+              <Typography variant="body" style={styles.username}>
+                @deinusername
+              </Typography>
+              <TouchableOpacity style={styles.editButton}>
+                <Ionicons name="pencil" size={18} color="rgba(255, 255, 255, 0.6)" />
+              </TouchableOpacity>
+            </View>
+            
+            <Typography variant="body" style={styles.bio}>
+              Willkommen auf meinem Anpip-Profil! 🎬✨
+            </Typography>
+          </View>
+
+          {/* Stats */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statsRow}>
+              <StatItem icon="person-add-outline" value="127" />
+              <View style={styles.statDivider} />
+              <StatItem icon="heart-outline" value="8.9K" />
+              <View style={styles.statDivider} />
+              <StatItem icon="people-outline" value="2.4K" />
+            </View>
+          </View>
+
+          {/* Action Icons */}
+          <View style={styles.actionIcons}>
+            <TouchableOpacity style={styles.actionIconButton}>
+              <Ionicons name="grid-outline" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionIconButton}>
+              <Ionicons name="heart-outline" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionIconButton}>
+              <Ionicons name="bookmark-outline" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionIconButton}>
+              <CustomRepeatIcon size={22} color="#FFFFFF" style={{ transform: [{ rotate: '90deg' }] }} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionIconButton}>
+              <Ionicons name="lock-closed-outline" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionIconButton}>
+              <Ionicons name="ellipsis-horizontal" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
-      )}
-    </ScrollView>
+
+        {/* Videos Grid */}
+        <View style={styles.grid}>
+          {DUMMY_VIDEOS.map((video, index) => (
+            <TouchableOpacity key={video.id} style={styles.gridItem}>
+              <View style={styles.videoCard}>
+                <LinearGradient
+                  colors={[
+                    `rgba(${index % 3 === 0 ? '102, 126, 234' : index % 3 === 1 ? '237, 107, 157' : '18, 194, 233'}, 0.3)`,
+                    'rgba(0, 0, 0, 0.5)'
+                  ]}
+                  style={styles.videoThumbnail}
+                >
+                  <Ionicons name="play-circle-outline" size={40} color="rgba(255, 255, 255, 0.9)" />
+                </LinearGradient>
+                
+                <View style={styles.videoStats}>
+                  <View style={styles.videoStat}>
+                    <Ionicons name="play" size={12} color="rgba(255, 255, 255, 0.8)" />
+                    <Typography variant="caption" style={styles.videoStatText}>
+                      {formatNumber(video.views)}
+                    </Typography>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 // Stat Item Komponente
-function StatItem({ label, value }: { label: string; value: string }) {
+function StatItem({ icon, value }: { icon: keyof typeof Ionicons.glyphMap; value: string }) {
   return (
     <View style={styles.statItem}>
-      <Typography variant="h3" align="center">{value}</Typography>
-      <Typography variant="caption" align="center" color={Colors.textSecondary}>
-        {label}
+      <Ionicons name={icon} size={28} color="#FFFFFF" style={{ marginBottom: 6 }} />
+      <Typography variant="h3" style={styles.statValue}>
+        {value}
       </Typography>
     </View>
   );
@@ -143,41 +166,47 @@ function StatItem({ label, value }: { label: string; value: string }) {
 // Tab Button Komponente
 function TabButton({ 
   icon, 
-  label, 
   isActive, 
   onPress 
 }: { 
   icon: keyof typeof Ionicons.glyphMap; 
-  label: string; 
   isActive: boolean; 
   onPress: () => void;
 }) {
   return (
-    <View style={styles.tabButton} onTouchEnd={onPress}>
-      <Ionicons 
-        name={icon} 
-        size={24} 
-        color={isActive ? Colors.primary : Colors.textSecondary} 
-      />
-      <Typography 
-        variant="caption" 
-        color={isActive ? Colors.primary : Colors.textSecondary}
-        style={{ marginTop: 4 }}
-      >
-        {label}
-      </Typography>
-      {isActive && <View style={styles.tabIndicator} />}
-    </View>
+    <TouchableOpacity style={styles.tabButton} onPress={onPress}>
+      <View style={styles.tabButtonContent}>
+        {isActive && (
+          <LinearGradient
+            colors={['rgba(102, 126, 234, 0.3)', 'rgba(118, 75, 162, 0.3)']}
+            style={styles.tabActiveBackground}
+          />
+        )}
+        <Ionicons 
+          name={icon} 
+          size={22} 
+          color={isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.5)'} 
+        />
+      </View>
+      {isActive && (
+        <LinearGradient
+          colors={['#667eea', '#764ba2']}
+          style={styles.tabIndicator}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        />
+      )}
+    </TouchableOpacity>
   );
 }
 
-// Zahlen formatieren (z.B. 1200 -> 1.2k)
+// Zahlen formatieren
 function formatNumber(num: number): string {
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + 'M';
   }
   if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'k';
+    return (num / 1000).toFixed(1) + 'K';
   }
   return num.toString();
 }
@@ -185,106 +214,299 @@ function formatNumber(num: number): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#000000',
   },
-  header: {
+  
+  // Top Bar (wie Feed)
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingTop: 45,
+    paddingBottom: 8,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: 'transparent',
+  },
+  topBarContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.md,
   },
-  profileSection: {
+  topBarButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: Spacing.lg,
   },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: Spacing.md,
+  topBarTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 0,
+    paddingBottom: 40,
+  },
+  
+  // Profilkarte
+  profileCard: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 0,
+    paddingTop: Spacing.xxxl,
+  },
+  
+  // Avatar
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  avatarGlow: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#667eea',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.6,
+        shadowRadius: 20,
+      },
+    }),
+  },
+  avatarIconContainer: {
+    width: 190,
+    height: 190,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarGradientRing: {
+    width: 136,
+    height: 136,
+    borderRadius: 68,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 3,
+  },
+  avatarInnerRing: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 65,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 3,
   },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.primaryLight,
+    overflow: 'hidden',
+  },
+  avatarBackground: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cameraButton: {
+  cameraButtonContainer: {
     position: 'absolute',
     bottom: 0,
-    right: 0,
+    right: '28%',
   },
-  username: {
+  cameraButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#000000',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#667eea',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
+      },
+    }),
+  },
+  
+  // Info
+  infoSection: {
+    alignItems: 'center',
     marginBottom: Spacing.sm,
   },
-  bio: {
-    paddingHorizontal: Spacing.xl,
+  fullName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
-  stats: {
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  username: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 4,
+  },
+  editButton: {
+    padding: 4,
+    marginBottom: 4,
+  },
+  bio: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    paddingHorizontal: Spacing.md,
+    lineHeight: 18,
+  },
+  
+  // Stats
+  statsContainer: {
+    marginBottom: Spacing.sm,
+  },
+  statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: Spacing.lg,
-    marginHorizontal: Spacing.lg,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '500',
+  },
   statDivider: {
     width: 1,
-    backgroundColor: Colors.divider,
+    height: '60%',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignSelf: 'center',
   },
-  actions: {
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.lg,
+  
+  // Action Icons
+  actionIcons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: Spacing.xs,
+  },
+  actionIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  
+  // Tabs
+  tabsContainer: {
+    marginTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   tabs: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
   },
   tabButton: {
     flex: 1,
+    position: 'relative',
+  },
+  tabButtonContent: {
     alignItems: 'center',
     paddingVertical: Spacing.md,
     position: 'relative',
   },
+  tabActiveBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  tabLabelActive: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  tabLabelInactive: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
   tabIndicator: {
     position: 'absolute',
     bottom: 0,
-    left: 0,
-    right: 0,
+    left: '20%',
+    right: '20%',
     height: 2,
-    backgroundColor: Colors.primary,
+    borderRadius: 1,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#667eea',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 8,
+      },
+    }),
   },
+  
+  // Grid
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: Spacing.xs,
+    paddingHorizontal: 2,
+    paddingTop: 0,
   },
   gridItem: {
     width: '33.33%',
-    padding: Spacing.xs,
+    padding: 2,
+  },
+  videoCard: {
+    borderRadius: 8,
+    overflow: 'hidden',
+    position: 'relative',
   },
   videoThumbnail: {
     aspectRatio: 9 / 16,
-    backgroundColor: Colors.surfaceVariant,
-    borderRadius: BorderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
   },
   videoStats: {
     position: 'absolute',
-    bottom: Spacing.xs,
-    left: Spacing.xs,
+    bottom: 6,
+    left: 6,
   },
   videoStat: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxxl,
+  videoStatText: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginLeft: 3,
+    fontWeight: '600',
   },
 });
