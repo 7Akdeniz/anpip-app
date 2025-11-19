@@ -13,15 +13,33 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: ThemeColors.primary,
-        tabBarInactiveTintColor: ThemeColors.textSecondary,
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: 'rgba(255,255,255,0.5)',
         tabBarStyle: {
-          backgroundColor: ThemeColors.background,
-          borderTopColor: ThemeColors.divider,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: 'transparent',
+          borderTopColor: 'rgba(255,255,255,0.45)',
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: 50,
+          paddingBottom: 2,
+          paddingTop: 0,
+          paddingHorizontal: 16,
+          elevation: 0,
+          shadowOpacity: 0,
+          overflow: 'visible',
+        },
+        tabBarItemStyle: {
+          paddingTop: 2,
+          marginTop: 0,
+        },
+        tabBarShowLabel: false,
+        tabBarIconStyle: {
+          textShadowColor: 'rgba(0, 0, 0, 0.8)',
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 3,
         },
         headerShown: false, // Wir haben eigene Header in den Screens
       }}>
@@ -30,9 +48,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="feed"
         options={{
-          title: 'Feed',
+          title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Ionicons name="home-outline" size={size} color={color} style={{
+              textShadowColor: 'rgba(0,0,0,0.8)',
+              textShadowRadius: 4,
+            }} />
           ),
         }}
       />
@@ -41,9 +62,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Entdecken',
+          title: 'Search',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search" size={size} color={color} />
+            <Ionicons name="search-outline" size={size} color={color} style={{
+              textShadowColor: 'rgba(0,0,0,0.8)',
+              textShadowRadius: 4,
+            }} />
           ),
         }}
       />
@@ -54,8 +78,21 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="add-circle" size={48} color={ThemeColors.primary} />
+            <Ionicons
+              name="add-circle-outline"
+              size={34}
+              color="#FFFFFF"
+              style={{
+                textShadowColor: 'rgba(0,0,0,0.8)',
+                textShadowRadius: 4,
+                marginTop: -4,
+              }}
+            />
           ),
+          tabBarItemStyle: {
+            paddingTop: 0,
+            marginTop: 0,
+          },
         }}
       />
 
@@ -63,9 +100,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Aktivität',
+          title: 'Messages',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="notifications" size={size} color={color} />
+            <Ionicons name="mail-outline" size={size} color={color} style={{
+              textShadowColor: 'rgba(0,0,0,0.8)',
+              textShadowRadius: 4,
+            }} />
           ),
         }}
       />
@@ -74,9 +114,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profil',
+          title: 'Menu',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <Ionicons name="person-outline" size={size} color={color} style={{
+              textShadowColor: 'rgba(0,0,0,0.8)',
+              textShadowRadius: 4,
+            }} />
           ),
         }}
       />

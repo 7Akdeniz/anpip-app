@@ -1,22 +1,152 @@
 /**
  * UPLOAD SCREEN - Video hochladen
- * 
- * Hier können später Videos hochgeladen werden
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Switch } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, Switch, Alert, ActivityIndicator } from 'react-native';
 import { Typography, PrimaryButton, Card } from '@/components/ui';
 import { Colors, Spacing, BorderRadius } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { Video } from 'expo-av';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'expo-router';
 
 export default function UploadScreen() {
-  const [title, setTitle] = useState('');
+  const router = useRouter();
+  const [videoUri, setVideoUri] = useState<string | null>(null);
   const [description, setDescription] = useState('');
-  const [hashtags, setHashtags] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('public');
   const [allowComments, setAllowComments] = useState(true);
   const [allowDuet, setAllowDuet] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
+
+  const pickVideo = async () => {
+    // Berechtigungen anfragen
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('Berechtigung erforderlich', 'Bitte erlaube den Zugriff auf deine Galerie, um Videos auszuwählen.');
+      return;
+    }
+
+    // Video aus Galerie wählen
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      quality: 1,
+      videoMaxDuration: 60, // Max 60 Sekunden
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      
+      // Prüfe Video-Dauer (falls verfügbar)
+      if (asset.duration && asset.duration > 60000) { // 60000ms = 60 Sekunden
+        Alert.alert(
+          'Video zu lang', 
+          'Dein Video darf maximal 60 Sekunden lang sein. Bitte schneide es kürzer.'
+        );
+        return;
+      }
+      
+      setVideoUri(asset.uri);
+      console.log('Video ausgewählt:', asset.uri, 'Dauer:', asset.duration, 'Größe:', asset.fileSize);
+    }
+  };
+
+  const uploadVideo = async () => {
+    if (!videoUri) {
+      Alert.alert('Fehler', 'Bitte wähle zuerst ein Video aus.');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress('Video wird vorbereitet...');
+
+    try {
+      console.log('🎬 Starte Upload...', videoUri);
+      
+      // Video-Datei vorbereiten
+      const videoName = `video_${Date.now()}.mp4`;
+      
+      setUploadProgress('Video wird hochgeladen...');
+      
+      // Verwende fetch mit arrayBuffer für React Native Kompatibilität
+      const response = await fetch(videoUri);
+      const arrayBuffer = await response.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      const originalSize = uint8Array.length;
+      console.log('📦 Video Größe:', (originalSize / 1024 / 1024).toFixed(2), 'MB');
+
+      // Wenn Video größer als 50 MB, informiere User
+      if (originalSize > 50 * 1024 * 1024) {
+        setUploadProgress(`Großes Video (${(originalSize / 1024 / 1024).toFixed(0)} MB) - Upload läuft...`);
+      }
+
+      // Upload zu Supabase Storage mit Uint8Array
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage
+        .from('videos')
+        .upload(videoName, uint8Array, {
+          contentType: 'video/mp4',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('❌ Storage Upload Fehler:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ Upload erfolgreich:', uploadData);
+      setUploadProgress('Video wird in Datenbank gespeichert...');
+
+      // Public URL vom hochgeladenen Video
+      const { data: { publicUrl } } = supabase
+        .storage
+        .from('videos')
+        .getPublicUrl(videoName);
+
+      console.log('🔗 Public URL:', publicUrl);
+
+      // Video-Eintrag in Datenbank erstellen
+      const { data: videoData, error: dbError } = await supabase
+        .from('videos')
+        .insert({
+          video_url: publicUrl,
+          thumbnail_url: publicUrl,
+          description: description,
+          visibility: visibility,
+          duration: 0,
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('❌ Datenbank Fehler:', dbError);
+        throw dbError;
+      }
+
+      console.log('✅ Video in Datenbank gespeichert:', videoData);
+      setUploadProgress('Fertig!');
+
+      // Formular zurücksetzen
+      setVideoUri(null);
+      setDescription('');
+      setVisibility('public');
+      
+      // Direkt zur Startseite wechseln (OHNE Bestätigung)
+      router.push('/(tabs)/feed');
+
+    } catch (error: any) {
+      console.error('Upload-Fehler:', error);
+      Alert.alert('Upload fehlgeschlagen', error.message || 'Ein Fehler ist aufgetreten.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -28,67 +158,50 @@ export default function UploadScreen() {
         {/* Video Upload Bereich */}
         <Card style={styles.uploadArea}>
           <View style={styles.uploadPlaceholder}>
-            <Ionicons name="cloud-upload-outline" size={80} color={Colors.primary} />
-            <Typography variant="h3" align="center" style={{ marginTop: Spacing.md }}>
-              Video auswählen
-            </Typography>
-            <Typography variant="caption" align="center" color={Colors.textSecondary} style={{ marginTop: Spacing.sm }}>
-              oder hier ablegen
-            </Typography>
-            <PrimaryButton
-              title="Video auswählen"
-              onPress={() => console.log('Video auswählen')}
-              style={{ marginTop: Spacing.lg }}
-            />
+            {uploading ? (
+              <>
+                <ActivityIndicator size="large" color={Colors.primary} />
+                <Typography variant="h3" align="center" style={{ marginTop: Spacing.md }}>
+                  {uploadProgress || 'Video wird hochgeladen...'}
+                </Typography>
+                <Typography variant="caption" align="center" color={Colors.textSecondary} style={{ marginTop: Spacing.sm }}>
+                  Bitte nicht schließen
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Ionicons name="cloud-upload-outline" size={80} color={Colors.primary} />
+                <Typography variant="h3" align="center" style={{ marginTop: Spacing.md }}>
+                  {videoUri ? 'Video ausgewählt ✓' : 'Video auswählen'}
+                </Typography>
+                <Typography variant="caption" align="center" color={Colors.textSecondary} style={{ marginTop: Spacing.sm }}>
+                  Max 60 Sekunden
+                </Typography>
+                <PrimaryButton
+                  title={videoUri ? 'Anderes Video wählen' : 'Video auswählen'}
+                  onPress={pickVideo}
+                  style={{ marginTop: Spacing.lg }}
+                />
+              </>
+            )}
           </View>
         </Card>
-
-        {/* Titel */}
-        <View style={styles.inputGroup}>
-          <Typography variant="body" style={styles.label}>Titel *</Typography>
-          <TextInput
-            style={styles.input}
-            placeholder="Gib deinem Video einen Titel..."
-            placeholderTextColor={Colors.textSecondary}
-            value={title}
-            onChangeText={setTitle}
-            maxLength={100}
-          />
-          <Typography variant="caption" color={Colors.textSecondary} align="right">
-            {title.length}/100
-          </Typography>
-        </View>
 
         {/* Beschreibung */}
         <View style={styles.inputGroup}>
           <Typography variant="body" style={styles.label}>Beschreibung</Typography>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="Erzähl mehr über dein Video..."
+            placeholder="Erzähl mehr über dein Video... Du kannst auch #hashtags verwenden"
             placeholderTextColor={Colors.textSecondary}
             value={description}
             onChangeText={setDescription}
             multiline
-            numberOfLines={4}
-            maxLength={500}
+            numberOfLines={6}
+            maxLength={2000}
           />
           <Typography variant="caption" color={Colors.textSecondary} align="right">
-            {description.length}/500
-          </Typography>
-        </View>
-
-        {/* Hashtags */}
-        <View style={styles.inputGroup}>
-          <Typography variant="body" style={styles.label}>Hashtags</Typography>
-          <TextInput
-            style={styles.input}
-            placeholder="#trending #anpip #viral"
-            placeholderTextColor={Colors.textSecondary}
-            value={hashtags}
-            onChangeText={setHashtags}
-          />
-          <Typography variant="caption" color={Colors.textSecondary}>
-            Trenne mehrere Hashtags mit Leerzeichen
+            {description.length}/2000
           </Typography>
         </View>
 
@@ -142,20 +255,22 @@ export default function UploadScreen() {
 
         {/* Veröffentlichen Button */}
         <PrimaryButton
-          title="Veröffentlichen"
-          onPress={() => console.log('Video veröffentlichen')}
+          title={uploading ? 'Wird hochgeladen...' : 'Veröffentlichen'}
+          onPress={uploadVideo}
           size="large"
           fullWidth
           style={styles.publishButton}
+          disabled={uploading || !videoUri}
         />
-
-        <PrimaryButton
-          title="Als Entwurf speichern"
-          onPress={() => console.log('Als Entwurf speichern')}
-          variant="outlined"
-          fullWidth
-          style={styles.draftButton}
-        />
+        
+        {uploading && (
+          <View style={styles.uploadingIndicator}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Typography variant="caption" color={Colors.textSecondary} style={{ marginLeft: Spacing.sm }}>
+              Video wird hochgeladen...
+            </Typography>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -306,6 +421,13 @@ const styles = StyleSheet.create({
   },
   publishButton: {
     marginTop: Spacing.lg,
+  },
+  uploadingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xl,
   },
   draftButton: {
     marginTop: Spacing.md,
