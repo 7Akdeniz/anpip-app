@@ -22,9 +22,9 @@ export default function TabLayout() {
     if (!isMessagesScreen) return; // Nur auf Messages-Screen aktiv
 
     if (routeName === 'explore') {
-      // Gruppenanruf-Funktion
+      // Anruf-Funktion
       event.preventDefault();
-      Alert.alert('Gruppenanruf', 'Gruppenanruffunktion wird gestartet...');
+      Alert.alert('Anruf', 'Anruffunktion wird gestartet...');
     } else if (routeName === 'upload') {
       // Neue Nachricht
       if (isMessagesScreen) {
@@ -86,14 +86,14 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Explore - Entdecken / Gruppenanruf auf Messages-Screen */}
+      {/* Explore - Entdecken / Anruf auf Messages-Screen */}
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Search',
           tabBarIcon: ({ color, size }) => (
             <Ionicons 
-              name={isMessagesScreen ? "people-outline" : "search-outline"} 
+              name={isMessagesScreen ? "call-outline" : "search-outline"} 
               size={size} 
               color={color} 
               style={{

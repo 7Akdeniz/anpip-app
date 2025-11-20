@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Alert, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, Alert, ActivityIndicator, TouchableOpacity, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
 import { Typography, PrimaryButton } from '@/components/ui';
 import { Colors, Spacing, BorderRadius } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -164,22 +164,23 @@ export default function UploadScreen() {
       return;
     }
 
-    // Video aus Galerie wählen
+    // Video aus Galerie wählen mit optimierter Qualität
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
       allowsEditing: true,
-      quality: 1,
-      videoMaxDuration: 60, // Max 60 Sekunden
+      quality: 0.7, // 70% Qualität - reduziert Größe um ~60%, sieht noch gut aus
+      videoMaxDuration: 62, // Max 62 Sekunden
+      videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium, // Medium Qualität für schnellere Uploads
     });
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       
       // Prüfe Video-Dauer (falls verfügbar)
-      if (asset.duration && asset.duration > 60000) { // 60000ms = 60 Sekunden
+      if (asset.duration && asset.duration > 62000) { // 62000ms = 62 Sekunden
         Alert.alert(
           'Video zu lang', 
-          'Dein Video darf maximal 60 Sekunden lang sein. Bitte schneide es kürzer.'
+          'Dein Video darf maximal 62 Sekunden lang sein. Bitte schneide es kürzer.'
         );
         return;
       }
@@ -228,24 +229,33 @@ export default function UploadScreen() {
       const uint8Array = new Uint8Array(arrayBuffer);
       
       const originalSize = uint8Array.length;
-      console.log('📦 Video Größe:', (originalSize / 1024 / 1024).toFixed(2), 'MB');
+      const sizeMB = (originalSize / 1024 / 1024).toFixed(2);
+      console.log('📦 Video Größe:', sizeMB, 'MB');
 
-      // Wenn Video größer als 50 MB, informiere User
-      if (originalSize > 50 * 1024 * 1024) {
-        setUploadProgress(`Großes Video (${(originalSize / 1024 / 1024).toFixed(0)} MB) - Upload läuft...`);
-      }
+      // Zeige Größe im Upload-Fortschritt
+      setUploadProgress(`Video wird hochgeladen (${sizeMB} MB)...`);
 
-      // Upload zu Supabase Storage mit Uint8Array
-      const { data: uploadData, error: uploadError } = await supabase
+      // Upload zu Supabase Storage
+      const { data: uploadData, error: uploadError} = await supabase
         .storage
         .from('videos')
         .upload(videoName, uint8Array, {
           contentType: 'video/mp4',
           upsert: false,
+          cacheControl: '3600',
         });
 
       if (uploadError) {
         console.error('❌ Storage Upload Fehler:', uploadError);
+        
+        // Spezielle Behandlung für Größenlimit-Fehler
+        if (uploadError.message?.includes('exceeded the maximum allowed size')) {
+          Alert.alert(
+            'Video zu groß',
+            `Dein Video (${sizeMB} MB) ist zu groß für den Upload.\n\nSupabase Free Tier erlaubt max. 50 MB pro Upload.\n\nBitte wähle ein kleineres Video oder upgrade deinen Supabase Plan.`,
+            [{ text: 'OK' }]
+          );
+        }
         throw uploadError;
       }
 
@@ -290,8 +300,6 @@ export default function UploadScreen() {
       console.log('✅ Video in Datenbank gespeichert:', videoData);
 
       setUploadProgress('Fertig!');
-
-      // Formular zurücksetzen
       setVideoUri(null);
       setDescription('');
       setVisibility('public');
@@ -312,7 +320,11 @@ export default function UploadScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       {/* Header Modern Apple Style */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -323,7 +335,13 @@ export default function UploadScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 20 }}
+        keyboardDismissMode="interactive"
+      >
         {/* Upload Bereich mit großen Icons */}
         <View style={styles.uploadSection}>
           {uploading ? (
@@ -709,7 +727,7 @@ Du kannst auch #hashtags und @mentions verwenden"
 
         <View style={{ height: 100 }} />
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

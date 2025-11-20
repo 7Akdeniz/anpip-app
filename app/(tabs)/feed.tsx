@@ -60,6 +60,13 @@ export default function FeedScreen() {
       }
 
       console.log('✅ Videos geladen:', data?.length || 0);
+      if (data && data.length > 0) {
+        console.log('🎥 Erstes Video:', {
+          id: data[0].id,
+          video_url: data[0].video_url,
+          description: data[0].description
+        });
+      }
       setVideos(data || []);
     } catch (error) {
       console.error('Fehler:', error);

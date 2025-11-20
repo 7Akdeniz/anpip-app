@@ -63,13 +63,19 @@ export function LocationAutocomplete({
     setError(null);
 
     try {
-      const response = await fetch('/api/locations/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ q: searchQuery }),
-      });
+      // Direct Nominatim API call - WELTWEIT (keine countrycodes Beschränkung)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?` +
+        `q=${encodeURIComponent(searchQuery)}&` +
+        `format=json&` +
+        `addressdetails=1&` +
+        `limit=10`,
+        {
+          headers: {
+            'User-Agent': 'Anpip.com Mobile App',
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch locations');
@@ -77,13 +83,19 @@ export function LocationAutocomplete({
 
       const data = await response.json();
       
-      if (data.success) {
-        setResults(data.data || []);
-        setShowDropdown(true);
-      } else {
-        setError(data.error || 'Search failed');
-        setResults([]);
-      }
+      // Transform Nominatim response to our format
+      const transformedResults = data.map((item: any, index: number) => ({
+        id: index,
+        displayName: item.display_name,
+        lat: parseFloat(item.lat),
+        lon: parseFloat(item.lon),
+        city: item.address?.city || item.address?.town || item.address?.village || '',
+        country: item.address?.country || '',
+        postcode: item.address?.postcode || '',
+      }));
+
+      setResults(transformedResults);
+      setShowDropdown(true);
     } catch (err: any) {
       console.error('Location search error:', err);
       setError('Verbindungsfehler. Bitte versuche es erneut.');
@@ -99,7 +111,7 @@ export function LocationAutocomplete({
       clearTimeout(debounceTimerRef.current);
     }
 
-    if (query.trim().length >= 2) {
+    if (query && query.trim().length >= 2) {
       debounceTimerRef.current = setTimeout(() => {
         searchLocations(query.trim());
       }, 500); // 500ms debounce
@@ -180,7 +192,7 @@ export function LocationAutocomplete({
             }
           }}
           onFocus={() => {
-            if (query.length >= 2 && results.length > 0) {
+            if (query && query.length >= 2 && results.length > 0) {
               setShowDropdown(true);
             }
           }}
@@ -193,7 +205,7 @@ export function LocationAutocomplete({
           <ActivityIndicator size="small" color={Colors.primary} />
         )}
 
-        {(query.length > 0 || selectedLocation) && !loading && !disabled && (
+        {((query?.length > 0) || selectedLocation) && !loading && !disabled && (
           <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
             <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.5)" />
           </TouchableOpacity>
@@ -210,14 +222,14 @@ export function LocationAutocomplete({
         </View>
       )}
 
-      {/* Dropdown Suggestions */}
+      {/* Dropdown Suggestions - now in normal flow */}
       {showDropdown && results.length > 0 && (
         <View style={styles.dropdown}>
           <FlatList
             data={results}
             renderItem={renderItem}
-            keyExtractor={(item) => item.id.toString()}
-            scrollEnabled={true}
+            keyExtractor={(item, index) => `${item.lat}-${item.lon}-${index}`}
+            scrollEnabled={false}
             nestedScrollEnabled={true}
             style={styles.dropdownList}
             keyboardShouldPersistTaps="handled"
@@ -240,8 +252,7 @@ export function LocationAutocomplete({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
-    zIndex: 1000,
+    width: '100%',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -283,10 +294,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   dropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
     marginTop: 6,
     backgroundColor: 'rgba(28,28,30,0.98)',
     borderRadius: 14,
