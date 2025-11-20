@@ -33,7 +33,6 @@ yarn-error.*
 .env
 .env*.local
 .env.local
-.env.production
 
 # typescript
 *.tsbuildinfo
