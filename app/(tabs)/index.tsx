@@ -14,6 +14,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useI18n } from '@/i18n/I18nContext';
 import { supabase } from '@/lib/supabase';
 import { Video as ExpoVideo, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
+import { router } from 'expo-router';
 
 // Responsive Breakpoints
 const MOBILE_MAX_WIDTH = 768;
@@ -45,7 +46,7 @@ interface VideoType {
   username?: string;
 }
 
-type TopTab = 'live' | 'following' | 'ads' | 'visitors' | 'all';
+type TopTab = 'live' | 'following' | 'market' | 'visitors' | 'all';
 
 export default function FeedScreen() {
   const { t } = useI18n();
@@ -89,12 +90,27 @@ export default function FeedScreen() {
 
   const loadVideos = async () => {
     try {
-      console.log('📥 Lade Videos...');
+      console.log('📥 Lade Videos...', 'Tab:', activeTab);
       
-      const { data, error } = await supabase
+      // Query basierend auf aktivem Tab
+      let query = supabase
         .from('videos')
         .select('*')
-        .eq('visibility', 'public')
+        .eq('visibility', 'public');
+
+      // Filter für Market Tab
+      if (activeTab === 'market') {
+        query = query.eq('is_market_item', true);
+        console.log('🏪 Lade Market-Videos...');
+      } else if (activeTab === 'all') {
+        // Alle Videos anzeigen (normale + Market-Videos)
+        console.log('📺 Lade alle Videos...');
+      } else {
+        // Für andere Tabs: nur normale Videos (keine Market-Items)
+        query = query.eq('is_market_item', false);
+      }
+
+      const { data, error } = await query
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -124,6 +140,11 @@ export default function FeedScreen() {
     
     loadVideos();
   }, []);
+
+  useEffect(() => {
+    // Videos neu laden wenn Tab wechselt
+    loadVideos();
+  }, [activeTab]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -312,7 +333,7 @@ export default function FeedScreen() {
         <Ionicons 
           name={iconName as any}
           size={24}
-          color={isActive ? '#FFFFFF' : 'rgba(255,255,255,0.6)'}
+          color={isActive ? '#FFFFFF' : 'rgba(255,255,255,0.6)'}  
           style={{
             textShadowColor: 'rgba(0, 0, 0, 0.8)',
             textShadowOffset: { width: 0, height: 1 },
@@ -328,12 +349,18 @@ export default function FeedScreen() {
     <View style={[styles.container, isDesktop && styles.desktopContainer]}>
       {/* Top-Bar (transparent overlay) */}
       <View style={[styles.topBar, isDesktop && styles.desktopTopBar]}>
+        {/* Top Tabs - Mitte */}
         <View style={styles.topTabs}>
           {renderTopTab('live', 'radio-outline')}
           {renderTopTab('following', 'people-outline')}
-          {renderTopTab('ads', 'pricetag-outline')}
+          {renderTopTab('market', 'pricetag-outline')}
           {renderTopTab('visitors', 'footsteps-outline')}
           {renderTopTab('all', 'videocam-outline')}
+        </View>
+
+        {/* Sprachauswahl - Rechts */}
+        <View style={styles.languageSwitcherContainer}>
+          <LanguageSwitcher />
         </View>
       </View>
 
@@ -400,17 +427,31 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 48,
     paddingBottom: 8,
+    paddingHorizontal: 16,
     backgroundColor: 'transparent',
   },
   desktopTopBar: {
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+  },
+  marketButton: {
+    padding: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 20,
+  },
+  languageSwitcherContainer: {
+    padding: 4,
   },
   topTabs: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    flex: 1,
     gap: 24,
   },
   topTabButton: {

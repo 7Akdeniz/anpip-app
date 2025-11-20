@@ -4,8 +4,8 @@
  * Modern Apple-Style mit Glassmorphism, vielen Icons und schönen Animationen
  */
 
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Switch, Alert, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TextInput, Alert, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
 import { Typography, PrimaryButton } from '@/components/ui';
 import { Colors, Spacing, BorderRadius } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,15 +17,140 @@ import { BlurView } from 'expo-blur';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Hauptkategorien mit Unterkategorien für Market
+const MARKET_CATEGORIES = [
+  { 
+    id: 'vehicles', 
+    name: 'Fahrzeuge', 
+    icon: 'car-outline',
+    subcategories: [
+      'Autos', 'Motorräder & Roller', 'Transporter & Nutzfahrzeuge', 
+      'Fahrräder & E-Bikes', 'Wohnmobile & Camping', 'Bootsfahrzeuge', 
+      'Autoteile & Zubehör', 'Reifen & Felgen'
+    ]
+  },
+  { 
+    id: 'real-estate', 
+    name: 'Immobilien', 
+    icon: 'home-outline',
+    subcategories: [
+      'Wohnung mieten', 'Wohnung kaufen', 'Haus mieten', 
+      'Haus kaufen', 'WG & Zimmer', 'Gewerbeimmobilien', 
+      'Grundstücke', 'Ferienwohnungen'
+    ]
+  },
+  { 
+    id: 'electronics', 
+    name: 'Elektronik', 
+    icon: 'phone-portrait-outline',
+    subcategories: [
+      'Smartphones', 'Laptops & Computer', 'Spielekonsolen & Gaming', 
+      'TV & Audio', 'Kameras', 'Smart Home', 
+      'Haushaltsgeräte', 'Zubehör & Kabel'
+    ]
+  },
+  { 
+    id: 'home-garden', 
+    name: 'Haus & Garten', 
+    icon: 'leaf-outline',
+    subcategories: [
+      'Möbel', 'Küche & Esszimmer', 'Garten & Pflanzen', 
+      'Werkzeuge', 'Heimwerken & Baumaterial', 'Deko & Wohnen', 
+      'Haushaltsgeräte', 'Bad & Sanitär'
+    ]
+  },
+  { 
+    id: 'fashion-beauty', 
+    name: 'Mode & Beauty', 
+    icon: 'shirt-outline',
+    subcategories: [
+      'Damenmode', 'Herrenmode', 'Schuhe', 
+      'Taschen & Accessoires', 'Schmuck', 'Beauty & Pflege', 
+      'Luxusmode', 'Uhren'
+    ]
+  },
+  { 
+    id: 'family-baby', 
+    name: 'Familie & Baby', 
+    icon: 'people-outline',
+    subcategories: [
+      'Kinderkleidung', 'Kinderwagen & Buggys', 'Babyzimmer & Möbel', 
+      'Spielzeug', 'Schulbedarf', 'Sicherheit & Überwachung', 
+      'Umstandsmode', 'Babyzubehör'
+    ]
+  },
+  { 
+    id: 'animals', 
+    name: 'Tiere', 
+    icon: 'paw-outline',
+    subcategories: [
+      'Hunde', 'Katzen', 'Kleintiere', 
+      'Vögel', 'Fische & Aquaristik', 'Terraristik', 
+      'Tierfutter', 'Tierzubehör'
+    ]
+  },
+  { 
+    id: 'leisure-hobby', 
+    name: 'Freizeit & Hobby', 
+    icon: 'basketball-outline',
+    subcategories: [
+      'Sport & Fitness', 'Outdoor & Camping', 'Spiele & Brettspiele', 
+      'Sammeln & Raritäten', 'Modellbau', 'Events & Aktivitäten', 
+      'Kunst & Basteln', 'Fahrräder'
+    ]
+  },
+  { 
+    id: 'music-media', 
+    name: 'Musik & Medien', 
+    icon: 'musical-notes-outline',
+    subcategories: [
+      'Bücher', 'Filme & DVDs', 'Musik & CDs', 
+      'Musikinstrumente', 'Games', 'Vinyl', 
+      'Noten & Musikzubehör', 'Hörbücher'
+    ]
+  },
+  { 
+    id: 'jobs-services', 
+    name: 'Jobs & Dienstleistungen', 
+    icon: 'briefcase-outline',
+    subcategories: [
+      'Jobangebote', 'Nebenjobs & Minijobs', 'Dienstleistungen privat', 
+      'Handwerk & Bau', 'Reinigung & Haushalt', 'Umzug & Transport', 
+      'Coaching & Unterricht', 'Beauty & Wellness Services'
+    ]
+  },
+  { 
+    id: 'business', 
+    name: 'Business & Gewerbe', 
+    icon: 'business-outline',
+    subcategories: [
+      'Büroausstattung', 'Maschinen & Industrie', 'Ladeneinrichtung', 
+      'Gastronomie & Küche', 'Computer & IT', 'Großhandelsposten', 
+      'Werkzeuge', 'Verpackung & Versand'
+    ]
+  },
+  { 
+    id: 'free-exchange', 
+    name: 'Verschenken / Tauschen', 
+    icon: 'gift-outline',
+    subcategories: [
+      'Zu verschenken', 'Tauschangebote', 'Möbel', 
+      'Kleidung', 'Bücher & Medien', 'Baby & Kinder', 
+      'Haushaltsartikel', 'Sonstiges'
+    ]
+  },
+];
+
 export default function UploadScreen() {
   const router = useRouter();
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('public');
-  const [allowComments, setAllowComments] = useState(true);
-  const [allowDuet, setAllowDuet] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
+  const [isForMarket, setIsForMarket] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
 
   const pickVideo = async () => {
     // Berechtigungen anfragen
@@ -125,6 +250,9 @@ export default function UploadScreen() {
           description: description,
           visibility: visibility,
           duration: 0,
+          is_market_item: isForMarket,
+          market_category: isForMarket ? selectedCategory : null,
+          market_subcategory: isForMarket ? selectedSubcategory : null,
         })
         .select()
         .single();
@@ -135,12 +263,16 @@ export default function UploadScreen() {
       }
 
       console.log('✅ Video in Datenbank gespeichert:', videoData);
+
       setUploadProgress('Fertig!');
 
       // Formular zurücksetzen
       setVideoUri(null);
       setDescription('');
       setVisibility('public');
+      setIsForMarket(false);
+      setSelectedCategory(null);
+      setSelectedSubcategory(null);
       
       // Direkt zur Startseite wechseln (OHNE Bestätigung)
       router.push('/(tabs)/feed');
@@ -155,21 +287,21 @@ export default function UploadScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header mit Glassmorphism */}
-      <BlurView intensity={80} tint="dark" style={styles.header}>
+      {/* Header Modern Apple Style */}
+      <View style={styles.header}>
         <View style={styles.headerContent}>
           <Typography variant="h2" style={styles.headerTitle}>Video erstellen</Typography>
           <Typography variant="caption" style={styles.headerSubtitle}>
             Teile deine Kreativität mit der Welt
           </Typography>
         </View>
-      </BlurView>
+      </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Upload Bereich mit großen Icons */}
         <View style={styles.uploadSection}>
           {uploading ? (
-            <BlurView intensity={60} tint="dark" style={styles.uploadCard}>
+            <View style={styles.uploadCard}>
               <View style={styles.uploadingContent}>
                 <View style={styles.uploadIconContainer}>
                   <ActivityIndicator size="large" color={Colors.primary} />
@@ -197,9 +329,9 @@ export default function UploadScreen() {
                   </View>
                 </View>
               </View>
-            </BlurView>
+            </View>
           ) : videoUri ? (
-            <BlurView intensity={60} tint="dark" style={styles.uploadCard}>
+            <View style={styles.uploadCard}>
               <View style={styles.videoPreview}>
                 <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
                 <Typography variant="h3" align="center" style={styles.videoSelectedTitle}>
@@ -212,10 +344,10 @@ export default function UploadScreen() {
                   </Typography>
                 </TouchableOpacity>
               </View>
-            </BlurView>
+            </View>
           ) : (
             <TouchableOpacity onPress={pickVideo} activeOpacity={0.8}>
-              <BlurView intensity={60} tint="dark" style={styles.uploadCard}>
+              <View style={styles.uploadCard}>
                 <View style={styles.uploadEmptyContent}>
                   <View style={styles.uploadIconCircle}>
                     <Ionicons name="cloud-upload-outline" size={48} color="#FFFFFF" />
@@ -243,60 +375,153 @@ export default function UploadScreen() {
                     </View>
                   </View>
                 </View>
-              </BlurView>
+              </View>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Quick Actions mit Icons */}
         <View style={styles.quickActions}>
-          <Typography variant="h3" style={styles.sectionTitle}>Schnellaktionen</Typography>
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity style={styles.quickActionCard} onPress={pickVideo}>
-              <View style={[styles.quickActionIcon, { backgroundColor: '#FF6B6B' }]}>
-                <Ionicons name="images-outline" size={28} color="#FFFFFF" />
+              <View style={styles.quickActionIconCircle}>
+                <Ionicons name="images-outline" size={26} color="#FFFFFF" />
               </View>
-              <Typography variant="caption" style={styles.quickActionText}>
-                Aus Galerie
-              </Typography>
+              <Typography variant="caption" style={styles.quickActionLabel}>Galerie</Typography>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.quickActionCard}>
-              <View style={[styles.quickActionIcon, { backgroundColor: '#4ECDC4' }]}>
-                <Ionicons name="camera-outline" size={28} color="#FFFFFF" />
+              <View style={styles.quickActionIconCircle}>
+                <Ionicons name="camera-outline" size={26} color="#FFFFFF" />
               </View>
-              <Typography variant="caption" style={styles.quickActionText}>
-                Aufnehmen
-              </Typography>
+              <Typography variant="caption" style={styles.quickActionLabel}>Kamera</Typography>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.quickActionCard}>
-              <View style={[styles.quickActionIcon, { backgroundColor: '#FFD93D' }]}>
-                <Ionicons name="cut-outline" size={28} color="#FFFFFF" />
+              <View style={styles.quickActionIconCircle}>
+                <Ionicons name="cut-outline" size={26} color="#FFFFFF" />
               </View>
-              <Typography variant="caption" style={styles.quickActionText}>
-                Bearbeiten
-              </Typography>
+              <Typography variant="caption" style={styles.quickActionLabel}>Schneiden</Typography>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.quickActionCard}>
-              <View style={[styles.quickActionIcon, { backgroundColor: '#95E1D3' }]}>
-                <Ionicons name="color-filter-outline" size={28} color="#FFFFFF" />
+              <View style={styles.quickActionIconCircle}>
+                <Ionicons name="color-filter-outline" size={26} color="#FFFFFF" />
               </View>
-              <Typography variant="caption" style={styles.quickActionText}>
-                Filter
-              </Typography>
+              <Typography variant="caption" style={styles.quickActionLabel}>Filter</Typography>
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Market Kategorie */}
+        <View style={styles.section}>
+          <TouchableOpacity 
+            onPress={() => setIsForMarket(!isForMarket)} 
+            activeOpacity={0.7}
+          >
+            <View style={[
+              styles.marketToggleCard,
+              isForMarket && styles.marketToggleCardActive
+            ]}>
+              <View style={styles.marketToggleLeft}>
+                <Ionicons name="pricetag-outline" size={24} color="#FFFFFF" />
+                <View>
+                  <Typography variant="body" style={styles.visibilityTitle}>
+                    Für Market verwenden
+                  </Typography>
+                  <Typography variant="caption" style={styles.visibilitySubtitle}>
+                    Zeige dein Video im Marketplace
+                  </Typography>
+                </View>
+              </View>
+              {isForMarket ? (
+                <View style={styles.checkmarkCircleLarge}>
+                  <Ionicons name="checkmark" size={24} color="#FFFFFF" />
+                </View>
+              ) : (
+                <View style={styles.uncheckedCircle} />
+              )}
+            </View>
+          </TouchableOpacity>
+
+          {/* Kategorien Auswahl */}
+          {isForMarket && (
+            <View style={styles.categoriesContainer}>
+              <Typography variant="caption" style={styles.categoriesLabel}>
+                Wähle eine Kategorie:
+              </Typography>
+              <View style={styles.categoriesGrid}>
+                {MARKET_CATEGORIES.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={[
+                      styles.categoryCard,
+                      selectedCategory === category.id && styles.categoryCardActive
+                    ]}
+                    onPress={() => {
+                      setSelectedCategory(category.id);
+                      setSelectedSubcategory(null); // Reset subcategory when changing main category
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons 
+                      name={category.icon as any} 
+                      size={20} 
+                      color={selectedCategory === category.id ? Colors.primary : '#FFFFFF'} 
+                    />
+                    <Typography 
+                      variant="caption" 
+                      style={
+                        selectedCategory === category.id 
+                          ? styles.categoryTextActive 
+                          : styles.categoryText
+                      }
+                    >
+                      {category.name}
+                    </Typography>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Unterkategorien Auswahl */}
+          {isForMarket && selectedCategory && (
+            <View style={styles.categoriesContainer}>
+              <Typography variant="caption" style={styles.categoriesLabel}>
+                Wähle eine Unterkategorie:
+              </Typography>
+              <View style={styles.subcategoriesGrid}>
+                {MARKET_CATEGORIES.find(cat => cat.id === selectedCategory)?.subcategories.map((subcategory, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.subcategoryChip,
+                      selectedSubcategory === subcategory && styles.subcategoryChipActive
+                    ]}
+                    onPress={() => setSelectedSubcategory(subcategory)}
+                    activeOpacity={0.7}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      style={
+                        selectedSubcategory === subcategory 
+                          ? styles.subcategoryTextActive 
+                          : styles.subcategoryText
+                      }
+                    >
+                      {subcategory}
+                    </Typography>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+
         {/* Beschreibung */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="text-outline" size={22} color={Colors.primary} />
-            <Typography variant="h3" style={styles.sectionTitleInline}>Beschreibung</Typography>
-          </View>
-          <BlurView intensity={40} tint="dark" style={styles.inputCard}>
+          <View style={styles.inputCard}>
             <TextInput
               style={styles.textArea}
               placeholder="Erzähl mehr über dein Video... 
@@ -324,25 +549,23 @@ Du kannst auch #hashtags und @mentions verwenden"
                 {description.length}/2000
               </Typography>
             </View>
-          </BlurView>
+          </View>
         </View>
 
         {/* Sichtbarkeit mit Icons */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="eye-outline" size={22} color={Colors.primary} />
+            <Ionicons name="eye-outline" size={22} color="#FFFFFF" />
             <Typography variant="h3" style={styles.sectionTitleInline}>Sichtbarkeit</Typography>
           </View>
           
           <TouchableOpacity onPress={() => setVisibility('public')} activeOpacity={0.7}>
-            <BlurView intensity={40} tint="dark" style={[
+            <View style={[
               styles.visibilityCard,
               visibility === 'public' && styles.visibilityCardActive
             ]}>
               <View style={styles.visibilityLeft}>
-                <View style={[styles.visibilityIconContainer, { backgroundColor: '#4CAF50' }]}>
-                  <Ionicons name="globe" size={24} color="#FFFFFF" />
-                </View>
+                <Ionicons name="globe" size={24} color="#FFFFFF" />
                 <View>
                   <Typography variant="body" style={styles.visibilityTitle}>Öffentlich</Typography>
                   <Typography variant="caption" style={styles.visibilitySubtitle}>
@@ -351,20 +574,20 @@ Du kannst auch #hashtags und @mentions verwenden"
                 </View>
               </View>
               {visibility === 'public' && (
-                <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
+                <View style={styles.checkmarkCircle}>
+                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                </View>
               )}
-            </BlurView>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => setVisibility('friends')} activeOpacity={0.7}>
-            <BlurView intensity={40} tint="dark" style={[
+            <View style={[
               styles.visibilityCard,
               visibility === 'friends' && styles.visibilityCardActive
             ]}>
               <View style={styles.visibilityLeft}>
-                <View style={[styles.visibilityIconContainer, { backgroundColor: '#2196F3' }]}>
-                  <Ionicons name="people" size={24} color="#FFFFFF" />
-                </View>
+                <Ionicons name="people" size={24} color="#FFFFFF" />
                 <View>
                   <Typography variant="body" style={styles.visibilityTitle}>Freunde</Typography>
                   <Typography variant="caption" style={styles.visibilitySubtitle}>
@@ -373,20 +596,20 @@ Du kannst auch #hashtags und @mentions verwenden"
                 </View>
               </View>
               {visibility === 'friends' && (
-                <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
+                <View style={styles.checkmarkCircle}>
+                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                </View>
               )}
-            </BlurView>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => setVisibility('private')} activeOpacity={0.7}>
-            <BlurView intensity={40} tint="dark" style={[
+            <View style={[
               styles.visibilityCard,
               visibility === 'private' && styles.visibilityCardActive
             ]}>
               <View style={styles.visibilityLeft}>
-                <View style={[styles.visibilityIconContainer, { backgroundColor: '#FF9800' }]}>
-                  <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
-                </View>
+                <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
                 <View>
                   <Typography variant="body" style={styles.visibilityTitle}>Privat</Typography>
                   <Typography variant="caption" style={styles.visibilitySubtitle}>
@@ -395,58 +618,12 @@ Du kannst auch #hashtags und @mentions verwenden"
                 </View>
               </View>
               {visibility === 'private' && (
-                <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
+                <View style={styles.checkmarkCircle}>
+                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                </View>
               )}
-            </BlurView>
+            </View>
           </TouchableOpacity>
-        </View>
-
-        {/* Einstellungen mit Icons */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="settings-outline" size={22} color={Colors.primary} />
-            <Typography variant="h3" style={styles.sectionTitleInline}>Einstellungen</Typography>
-          </View>
-          
-          <BlurView intensity={40} tint="dark" style={styles.settingsCard}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingLeft}>
-                <Ionicons name="chatbubble-outline" size={22} color="#4ECDC4" />
-                <View style={styles.settingTextContainer}>
-                  <Typography variant="body" style={styles.settingTitle}>Kommentare erlauben</Typography>
-                  <Typography variant="caption" style={styles.settingSubtitle}>
-                    Andere können kommentieren
-                  </Typography>
-                </View>
-              </View>
-              <Switch
-                value={allowComments}
-                onValueChange={setAllowComments}
-                trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.primary }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-
-            <View style={styles.settingDivider} />
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingLeft}>
-                <Ionicons name="people-outline" size={22} color="#FFD93D" />
-                <View style={styles.settingTextContainer}>
-                  <Typography variant="body" style={styles.settingTitle}>Duett erlauben</Typography>
-                  <Typography variant="caption" style={styles.settingSubtitle}>
-                    Andere können Duett erstellen
-                  </Typography>
-                </View>
-              </View>
-              <Switch
-                value={allowDuet}
-                onValueChange={setAllowDuet}
-                trackColor={{ false: 'rgba(255,255,255,0.2)', true: Colors.primary }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-          </BlurView>
         </View>
 
         {/* Veröffentlichen Button */}
@@ -459,7 +636,7 @@ Du kannst auch #hashtags und @mentions verwenden"
           disabled={uploading || !videoUri}
           activeOpacity={0.8}
         >
-          <BlurView intensity={80} tint="light" style={styles.publishButtonContent}>
+          <View style={styles.publishButtonContent}>
             {uploading ? (
               <>
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -475,7 +652,7 @@ Du kannst auch #hashtags und @mentions verwenden"
                 </Typography>
               </>
             )}
-          </BlurView>
+          </View>
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />
@@ -491,23 +668,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 16,
-    paddingHorizontal: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingTop: 44,
+    paddingBottom: 8,
+    paddingHorizontal: Spacing.sm,
+    backgroundColor: 'rgba(20,20,20,0.95)',
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255,255,255,0.15)',
   },
   headerContent: {
-    gap: 4,
+    gap: 1,
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: '700',
   },
   headerSubtitle: {
     color: 'rgba(255,255,255,0.6)',
-    fontSize: 15,
+    fontSize: 11,
   },
   content: {
     flex: 1,
@@ -515,59 +693,64 @@ const styles = StyleSheet.create({
   
   // Upload Section
   uploadSection: {
-    padding: Spacing.md,
+    padding: Spacing.xs,
+    paddingTop: Spacing.sm,
   },
   uploadCard: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 14,
+    backgroundColor: 'rgba(28,28,30,0.95)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   uploadingContent: {
-    padding: Spacing.xl,
+    padding: Spacing.sm,
     alignItems: 'center',
   },
   uploadIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   uploadingTitle: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   uploadingSubtitle: {
     color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
+    fontSize: 11,
   },
   progressIcons: {
     flexDirection: 'row',
-    gap: 24,
-    marginTop: 24,
+    gap: 12,
+    marginTop: 12,
   },
   progressIconItem: {
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   progressText: {
     color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
+    fontSize: 10,
   },
   videoPreview: {
-    padding: Spacing.xl,
+    padding: Spacing.sm,
     alignItems: 'center',
   },
   videoSelectedTitle: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: '600',
-    marginTop: 16,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 8,
   },
   changeVideoButton: {
     flexDirection: 'row',
@@ -584,132 +767,229 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   uploadEmptyContent: {
-    padding: Spacing.xl,
+    padding: Spacing.sm,
     alignItems: 'center',
   },
   uploadIconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-  },
-  uploadTitle: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '600',
     marginBottom: 8,
-  },
-  uploadSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
-  },
-  featureIcons: {
-    flexDirection: 'row',
-    gap: 16,
-    marginTop: 24,
-  },
-  featureItem: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  featureText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
-  },
-
-  // Quick Actions
-  quickActions: {
-    padding: Spacing.md,
-    paddingTop: 0,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  quickActionCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 8,
-  },
-  quickActionIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
-  quickActionText: {
+  uploadTitle: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  uploadSubtitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 11,
+  },
+  featureIcons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  featureItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  featureText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 10,
+  },
+
+  // Quick Actions
+  quickActions: {
+    padding: Spacing.xs,
+    paddingTop: 0,
+    marginBottom: 4,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  quickActionCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  quickActionIconCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: 'rgba(139,92,246,0.2)',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  quickActionLabel: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
     textAlign: 'center',
   },
 
   // Sections
   section: {
-    padding: Spacing.md,
+    padding: Spacing.xs,
     paddingTop: 0,
-    marginTop: 20,
+    marginTop: 8,
   },
   sectionTitle: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    gap: 5,
+    marginBottom: 6,
   },
   sectionTitleInline: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // Market Toggle
+  marketToggleCard: {
+    borderRadius: 14,
+    backgroundColor: 'rgba(28,28,30,0.95)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    padding: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  marketToggleCardActive: {
+    backgroundColor: 'rgba(139,92,246,0.15)',
+    borderColor: Colors.primary,
+    borderWidth: 1.5,
+  },
+  marketToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+
+  // Categories
+  categoriesContainer: {
+    marginTop: 6,
+  },
+  categoriesLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    marginBottom: 6,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  categoryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(28,28,30,0.95)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  categoryCardActive: {
+    backgroundColor: 'rgba(139,92,246,0.2)',
+    borderColor: Colors.primary,
+    borderWidth: 1.5,
+  },
+  categoryText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+  },
+  categoryTextActive: {
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+
+  // Subcategory Chips
+  subcategoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  subcategoryChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(28,28,30,0.95)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  subcategoryChipActive: {
+    backgroundColor: 'rgba(139,92,246,0.2)',
+    borderColor: Colors.primary,
+    borderWidth: 1.5,
+  },
+  subcategoryText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+  },
+  subcategoryTextActive: {
+    color: Colors.primary,
     fontWeight: '600',
   },
 
   // Input Card
   inputCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    padding: Spacing.md,
+    borderRadius: 14,
+    backgroundColor: 'rgba(28,28,30,0.95)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    padding: 10,
   },
   textArea: {
     color: '#FFFFFF',
-    fontSize: 16,
-    minHeight: 120,
+    fontSize: 13,
+    minHeight: 70,
     textAlignVertical: 'top',
   },
   inputFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 6,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.1)',
   },
   inputIcons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 6,
   },
   inputIconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -721,107 +1001,99 @@ const styles = StyleSheet.create({
 
   // Visibility Cards
   visibilityCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    padding: 16,
+    borderRadius: 14,
+    backgroundColor: 'rgba(28,28,30,0.95)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    padding: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   visibilityCardActive: {
+    backgroundColor: 'rgba(139,92,246,0.15)',
     borderColor: Colors.primary,
-    borderWidth: 2,
+    borderWidth: 1.5,
   },
   visibilityLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     flex: 1,
-  },
-  visibilityIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   visibilityTitle: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   visibilitySubtitle: {
     color: 'rgba(255,255,255,0.6)',
-    fontSize: 13,
+    fontSize: 10,
   },
 
-  // Settings Card
-  settingsCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    padding: 16,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  // Checkmark Circle (Apple-Style)
+  checkmarkCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
   },
-  settingLeft: {
-    flexDirection: 'row',
+  // Größerer Checkmark Circle für Market
+  checkmarkCircleLarge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
-    flex: 1,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
   },
-  settingTextContainer: {
-    flex: 1,
-  },
-  settingTitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  settingSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 13,
-  },
-  settingDivider: {
-    height: 1,
+  // Unchecked Circle
+  uncheckedCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    marginVertical: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
 
   // Publish Button
   publishButton: {
-    marginHorizontal: Spacing.md,
-    marginTop: 24,
-    borderRadius: 16,
+    marginHorizontal: Spacing.xs,
+    marginTop: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
-    shadowRadius: 16,
+    shadowRadius: 12,
   },
   publishButtonDisabled: {
     opacity: 0.5,
   },
   publishButtonContent: {
-    paddingVertical: 18,
+    paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     backgroundColor: Colors.primary,
   },
   publishButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
   },
 });
