@@ -15,6 +15,8 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 
+import { LocationAutocomplete, Location } from '@/components/LocationAutocomplete';
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Hauptkategorien mit Unterkategorien für Market
@@ -149,6 +151,7 @@ export default function UploadScreen() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [isForMarket, setIsForMarket] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
 
@@ -190,6 +193,22 @@ export default function UploadScreen() {
     if (!videoUri) {
       Alert.alert('Fehler', 'Bitte wähle zuerst ein Video aus.');
       return;
+    }
+
+    // Validierung für Market-Listings
+    if (isForMarket) {
+      if (!selectedLocation) {
+        Alert.alert('Stadt fehlt', 'Bitte wähle zuerst eine Stadt für dein Market-Video aus.');
+        return;
+      }
+      if (!selectedCategory) {
+        Alert.alert('Kategorie fehlt', 'Bitte wähle eine Kategorie für dein Market-Video aus.');
+        return;
+      }
+      if (!selectedSubcategory) {
+        Alert.alert('Unterkategorie fehlt', 'Bitte wähle eine Unterkategorie für dein Market-Video aus.');
+        return;
+      }
     }
 
     setUploading(true);
@@ -253,6 +272,12 @@ export default function UploadScreen() {
           is_market_item: isForMarket,
           market_category: isForMarket ? selectedCategory : null,
           market_subcategory: isForMarket ? selectedSubcategory : null,
+          location_city: isForMarket && selectedLocation ? selectedLocation.city : null,
+          location_country: isForMarket && selectedLocation ? selectedLocation.country : null,
+          location_lat: isForMarket && selectedLocation ? selectedLocation.lat : null,
+          location_lon: isForMarket && selectedLocation ? selectedLocation.lon : null,
+          location_display_name: isForMarket && selectedLocation ? selectedLocation.displayName : null,
+          location_postcode: isForMarket && selectedLocation ? selectedLocation.postcode : null,
         })
         .select()
         .single();
@@ -271,6 +296,7 @@ export default function UploadScreen() {
       setDescription('');
       setVisibility('public');
       setIsForMarket(false);
+      setSelectedLocation(null);
       setSelectedCategory(null);
       setSelectedSubcategory(null);
       
@@ -416,7 +442,16 @@ export default function UploadScreen() {
         {/* Market Kategorie */}
         <View style={styles.section}>
           <TouchableOpacity 
-            onPress={() => setIsForMarket(!isForMarket)} 
+            onPress={() => {
+              const newValue = !isForMarket;
+              setIsForMarket(newValue);
+              if (!newValue) {
+                // Reset location and categories when disabling market
+                setSelectedLocation(null);
+                setSelectedCategory(null);
+                setSelectedSubcategory(null);
+              }
+            }} 
             activeOpacity={0.7}
           >
             <View style={[
@@ -444,11 +479,28 @@ export default function UploadScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* Kategorien Auswahl */}
+          {/* Stadt-Auswahl (Schritt 1) */}
           {isForMarket && (
+            <View style={styles.locationContainer}>
+              <Typography variant="caption" style={styles.categoriesLabel}>
+                1. Stadt wählen (Pflicht):
+              </Typography>
+              <LocationAutocomplete
+                onSelect={(location) => {
+                  setSelectedLocation(location);
+                  console.log('📍 Standort gewählt:', location);
+                }}
+                placeholder="Stadt suchen (z.B. Berlin, Hamburg, Istanbul)..."
+                initialValue={selectedLocation}
+              />
+            </View>
+          )}
+
+          {/* Kategorien Auswahl (Schritt 2) */}
+          {isForMarket && selectedLocation && (
             <View style={styles.categoriesContainer}>
               <Typography variant="caption" style={styles.categoriesLabel}>
-                Wähle eine Kategorie:
+                2. Wähle eine Kategorie:
               </Typography>
               <View style={styles.categoriesGrid}>
                 {MARKET_CATEGORIES.map((category) => (
@@ -485,11 +537,11 @@ export default function UploadScreen() {
             </View>
           )}
 
-          {/* Unterkategorien Auswahl */}
-          {isForMarket && selectedCategory && (
+          {/* Unterkategorien Auswahl (Schritt 3) */}
+          {isForMarket && selectedLocation && selectedCategory && (
             <View style={styles.categoriesContainer}>
               <Typography variant="caption" style={styles.categoriesLabel}>
-                Wähle eine Unterkategorie:
+                3. Wähle eine Unterkategorie:
               </Typography>
               <View style={styles.subcategoriesGrid}>
                 {MARKET_CATEGORIES.find(cat => cat.id === selectedCategory)?.subcategories.map((subcategory, index) => (
@@ -929,6 +981,11 @@ const styles = StyleSheet.create({
   categoryTextActive: {
     color: Colors.primary,
     fontWeight: '600',
+  },
+
+  // Location Container
+  locationContainer: {
+    marginTop: 12,
   },
 
   // Subcategory Chips
