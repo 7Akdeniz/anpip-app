@@ -1,6 +1,7 @@
 // Supabase Edge Function: Video Komprimierung mit FFmpeg
 // Triggert automatisch wenn Video in 'videos-raw' hochgeladen wird
 
+// @deno-types="https://deno.land/x/types/deploy/stable/index.d.ts"
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 
@@ -9,7 +10,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+interface CompressVideoRequest {
+  videoPath: string
+  userId: string
+  videoId: string
+}
+
+serve(async (req: Request) => {
   // CORS Preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -22,7 +29,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     // Request Body parsen
-    const { videoPath, userId, videoId } = await req.json()
+    const { videoPath, userId, videoId } = await req.json() as CompressVideoRequest
     
     if (!videoPath || !userId || !videoId) {
       throw new Error('Missing required parameters: videoPath, userId, videoId')
@@ -74,7 +81,7 @@ serve(async (req) => {
       stderr: 'piped',
     })
 
-    const { code, stdout, stderr } = await ffmpegCommand.output()
+    const { code, stderr } = await ffmpegCommand.output()
 
     if (code !== 0) {
       const errorOutput = new TextDecoder().decode(stderr)
@@ -159,10 +166,12 @@ serve(async (req) => {
   } catch (error) {
     console.error('❌ Compression Error:', error)
     
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
