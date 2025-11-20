@@ -8,8 +8,36 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors as ThemeColors } from '@/constants/Theme';
+import { usePathname, useRouter } from 'expo-router';
+import { Alert } from 'react-native';
+import { triggerNewMessage } from './messages';
 
 export default function TabLayout() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const isMessagesScreen = pathname === '/messages';
+
+  // Handler für Tab-Presses auf Messages-Screen
+  const handleTabPress = (routeName: string, event: any) => {
+    if (!isMessagesScreen) return; // Nur auf Messages-Screen aktiv
+
+    if (routeName === 'explore') {
+      // Gruppenanruf-Funktion
+      event.preventDefault();
+      Alert.alert('Gruppenanruf', 'Gruppenanruffunktion wird gestartet...');
+    } else if (routeName === 'upload') {
+      // Neue Nachricht
+      if (isMessagesScreen) {
+        event.preventDefault();
+        triggerNewMessage();
+      }
+    } else if (routeName === 'profile') {
+      // Videoanruf-Funktion
+      event.preventDefault();
+      Alert.alert('Videoanruf', 'Videoanruffunktion wird gestartet...');
+    }
+  };
+  
   return (
     <Tabs
       screenOptions={{
@@ -58,21 +86,29 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Explore - Entdecken */}
+      {/* Explore - Entdecken / Gruppenanruf auf Messages-Screen */}
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Search',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" size={size} color={color} style={{
-              textShadowColor: 'rgba(0,0,0,0.8)',
-              textShadowRadius: 4,
-            }} />
+            <Ionicons 
+              name={isMessagesScreen ? "people-outline" : "search-outline"} 
+              size={size} 
+              color={color} 
+              style={{
+                textShadowColor: 'rgba(0,0,0,0.8)',
+                textShadowRadius: 4,
+              }} 
+            />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => handleTabPress('explore', e),
         }}
       />
 
-      {/* Upload - Video hochladen (zentraler Button) */}
+      {/* Upload - Video hochladen / Neue Nachricht auf Messages-Screen */}
       <Tabs.Screen
         name="upload"
         options={{
@@ -94,15 +130,18 @@ export default function TabLayout() {
             marginTop: 0,
           },
         }}
+        listeners={{
+          tabPress: (e) => handleTabPress('upload', e),
+        }}
       />
 
-      {/* Notifications - Benachrichtigungen */}
+      {/* Messages - WhatsApp-Style Nachrichten */}
       <Tabs.Screen
-        name="notifications"
+        name="messages"
         options={{
           title: 'Messages',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="mail-outline" size={size} color={color} style={{
+            <Ionicons name="chatbubbles-outline" size={size} color={color} style={{
               textShadowColor: 'rgba(0,0,0,0.8)',
               textShadowRadius: 4,
             }} />
@@ -110,17 +149,33 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Profile - Profil */}
+      {/* Notifications verstecken (durch messages ersetzt) */}
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null, // Versteckt den Tab
+        }}
+      />
+
+      {/* Profile - Profil / Videoanruf auf Messages-Screen */}
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Menu',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} style={{
-              textShadowColor: 'rgba(0,0,0,0.8)',
-              textShadowRadius: 4,
-            }} />
+            <Ionicons 
+              name={isMessagesScreen ? "videocam-outline" : "person-outline"} 
+              size={size} 
+              color={color} 
+              style={{
+                textShadowColor: 'rgba(0,0,0,0.8)',
+                textShadowRadius: 4,
+              }} 
+            />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => handleTabPress('profile', e),
         }}
       />
 

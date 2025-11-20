@@ -1,61 +1,48 @@
 /**
- * NOTIFICATIONS SCREEN - Benachrichtigungen
- * 
- * Likes, Kommentare, neue Follower, etc.
+ * NOTIFICATIONS SCREEN
+ * Benachrichtigungen über Likes, Kommentare, Follower etc.
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
-import { Typography, Card, IconButton } from '@/components/ui';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Typography } from '@/components/ui';
 import { Colors, Spacing, BorderRadius } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
+import { Card, IconButton } from '@/components/ui';
 
 // Dummy-Benachrichtigungen
 const DUMMY_NOTIFICATIONS = [
   {
     id: '1',
     type: 'like',
-    user: 'maria_schmidt',
-    action: 'hat dein Video geliked',
-    time: 'vor 2 Min',
-    icon: 'heart' as const,
-    iconColor: Colors.like,
+    user: 'Maria Schmidt',
+    action: 'gefällt dein Video',
+    time: 'vor 5 Min.',
+    read: false,
   },
   {
     id: '2',
     type: 'comment',
-    user: 'alex_mueller',
-    action: 'hat kommentiert: "Super Video! 🔥"',
-    time: 'vor 5 Min',
-    icon: 'chatbubble' as const,
-    iconColor: Colors.info,
+    user: 'Alex Mueller',
+    action: 'hat dein Video kommentiert',
+    time: 'vor 15 Min.',
+    read: false,
   },
   {
     id: '3',
     type: 'follow',
-    user: 'lisa_berger',
+    user: 'Lisa Berger',
     action: 'folgt dir jetzt',
-    time: 'vor 10 Min',
-    icon: 'person-add' as const,
-    iconColor: Colors.primary,
+    time: 'vor 1 Std.',
+    read: false,
   },
   {
     id: '4',
     type: 'like',
-    user: 'tom_weber',
-    action: 'hat dein Video geliked',
-    time: 'vor 30 Min',
-    icon: 'heart' as const,
-    iconColor: Colors.like,
-  },
-  {
-    id: '5',
-    type: 'mention',
-    user: 'sarah_fischer',
-    action: 'hat dich in einem Video erwähnt',
-    time: 'vor 1 Std',
-    icon: 'at' as const,
-    iconColor: Colors.warning,
+    user: 'Tom Weber',
+    action: 'gefällt dein Video',
+    time: 'vor 2 Std.',
+    read: true,
   },
 ];
 
@@ -64,25 +51,39 @@ export default function NotificationsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Typography variant="h2" color={Colors.primary}>Benachrichtigungen</Typography>
+        <Typography variant="h2">Benachrichtigungen</Typography>
       </View>
 
-      {/* Benachrichtigungen Liste */}
+      {/* Liste */}
       <ScrollView style={styles.list}>
-        {DUMMY_NOTIFICATIONS.map((notification) => (
-          <Card key={notification.id} style={styles.notificationCard} variant="outlined">
-            <View style={styles.notificationContent}>
-              {/* Avatar & Icon */}
+        {/* Neue Benachrichtigungen */}
+        <Typography variant="caption" color={Colors.textSecondary} style={styles.sectionHeader}>
+          Neu
+        </Typography>
+
+        {DUMMY_NOTIFICATIONS.filter(n => !n.read).map((notification) => (
+          <Card key={notification.id} style={styles.notificationCard}>
+            <TouchableOpacity style={styles.notificationContent}>
               <View style={styles.avatarContainer}>
                 <View style={styles.avatar}>
                   <Ionicons name="person" size={24} color={Colors.textSecondary} />
                 </View>
-                <View style={[styles.iconBadge, { backgroundColor: notification.iconColor }]}>
-                  <Ionicons name={notification.icon} size={14} color={Colors.background} />
+                <View style={[
+                  styles.iconBadge,
+                  { backgroundColor: notification.type === 'like' ? '#FF3B5C' : notification.type === 'comment' ? '#4FC3F7' : Colors.primary }
+                ]}>
+                  <Ionicons 
+                    name={
+                      notification.type === 'like' ? 'heart' : 
+                      notification.type === 'comment' ? 'chatbubble' : 
+                      'person-add'
+                    } 
+                    size={12} 
+                    color="#FFFFFF" 
+                  />
                 </View>
               </View>
 
-              {/* Inhalt */}
               <View style={styles.textContainer}>
                 <Typography variant="body">
                   <Typography variant="body" style={{ fontWeight: '600' }}>
@@ -96,14 +97,6 @@ export default function NotificationsScreen() {
                 </Typography>
               </View>
 
-              {/* Video-Thumbnail (bei Video-Benachrichtigungen) */}
-              {(notification.type === 'like' || notification.type === 'comment') && (
-                <View style={styles.videoThumbnail}>
-                  <Ionicons name="play" size={20} color={Colors.background} />
-                </View>
-              )}
-
-              {/* Follow-Button (bei neuen Followern) */}
               {notification.type === 'follow' && (
                 <IconButton
                   icon="person-add-outline"
@@ -113,18 +106,18 @@ export default function NotificationsScreen() {
                   color={Colors.background}
                 />
               )}
-            </View>
+            </TouchableOpacity>
           </Card>
         ))}
 
         {/* Ältere Benachrichtigungen */}
-        <Typography variant="caption" color={Colors.textSecondary} align="center" style={styles.divider}>
-          Ältere Benachrichtigungen
+        <Typography variant="caption" color={Colors.textSecondary} style={styles.sectionHeader}>
+          Früher
         </Typography>
 
-        {DUMMY_NOTIFICATIONS.slice(0, 3).map((notification, index) => (
-          <Card key={`old-${index}`} style={styles.notificationCard} variant="outlined">
-            <View style={styles.notificationContent}>
+        {DUMMY_NOTIFICATIONS.filter(n => n.read).map((notification) => (
+          <Card key={notification.id} style={styles.notificationCard} variant="outlined">
+            <TouchableOpacity style={styles.notificationContent}>
               <View style={styles.avatarContainer}>
                 <View style={styles.avatar}>
                   <Ionicons name="person" size={24} color={Colors.textSecondary} />
@@ -140,10 +133,10 @@ export default function NotificationsScreen() {
                   {notification.action}
                 </Typography>
                 <Typography variant="caption" color={Colors.textSecondary} style={{ marginTop: 4 }}>
-                  vor 2 Tagen
+                  {notification.time}
                 </Typography>
               </View>
-            </View>
+            </TouchableOpacity>
           </Card>
         ))}
       </ScrollView>
@@ -157,13 +150,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    padding: Spacing.md,
+    paddingTop: 60,
+    paddingBottom: 16,
+    paddingHorizontal: Spacing.md,
     backgroundColor: Colors.background,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
   },
   list: {
     flex: 1,
+  },
+  sectionHeader: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   notificationCard: {
     marginHorizontal: Spacing.md,
@@ -172,6 +172,7 @@ const styles = StyleSheet.create({
   notificationContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: Spacing.sm,
   },
   avatarContainer: {
     position: 'relative',
@@ -199,16 +200,5 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-  },
-  videoThumbnail: {
-    width: 48,
-    height: 64,
-    backgroundColor: Colors.surfaceVariant,
-    borderRadius: BorderRadius.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  divider: {
-    marginVertical: Spacing.lg,
   },
 });

@@ -15,14 +15,21 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anpip.app"
+      "bundleIdentifier": "com.anpip.app",
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Anpip benötigt Zugriff auf Spracherkennung, um deine gesprochenen Suchanfragen zu verstehen.",
+        "NSMicrophoneUsageDescription": "Anpip benötigt Zugriff auf dein Mikrofon für die Sprachsuche."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#9C27B0"
       },
-      "package": "com.anpip.app"
+      "package": "com.anpip.app",
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",

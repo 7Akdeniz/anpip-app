@@ -56,12 +56,9 @@ export default function ProfileScreen() {
 
             {/* Camera Button */}
             <TouchableOpacity style={styles.cameraButtonContainer}>
-              <LinearGradient
-                colors={['#667eea', '#764ba2']}
-                style={styles.cameraButton}
-              >
-                <Ionicons name="camera" size={16} color="#FFFFFF" />
-              </LinearGradient>
+              <View style={styles.cameraButton}>
+                <Ionicons name="camera-outline" size={28} color="rgba(255, 255, 255, 0.9)" />
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -313,25 +310,18 @@ const styles = StyleSheet.create({
   },
   cameraButtonContainer: {
     position: 'absolute',
-    bottom: 0,
-    right: '28%',
+    bottom: 8,
+    right: '32%',
   },
   cameraButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#000000',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#667eea',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 8,
-      },
-    }),
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   
   // Info
