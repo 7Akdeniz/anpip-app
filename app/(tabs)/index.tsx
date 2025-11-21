@@ -497,19 +497,17 @@ export default function FeedScreen() {
   };
   
   return (
-    <View style={[styles.container, isDesktop && styles.desktopContainer]}>
-      {/* Container für Tablet/Desktop - begrenzt Breite */}
-      <View style={[
-        styles.contentWrapper,
-        (isDesktop || isTablet) && {
-          width: videoWidth,
-          alignSelf: 'center',
-        }
-      ]}>
+    <View style={[
+      styles.container, 
+      isDesktop && styles.desktopContainer,
+      (isDesktop || isTablet) && {
+        maxWidth: videoWidth,
+        alignSelf: 'center',
+      }
+    ]}>
         {/* Top-Bar (transparent overlay) */}
         <View style={[
           styles.topBar, 
-          isMobile && { left: 0, right: 0 },
           isDesktop && styles.desktopTopBar,
         ]}>
           {/* Top Tabs - Mitte */}
@@ -604,7 +602,6 @@ export default function FeedScreen() {
           />
         </View>
       )}
-      </View>
     </View>
   );
 }
@@ -613,13 +610,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+    width: '100%',
   },
   desktopContainer: {
     backgroundColor: '#0a0a0a',
-  },
-  contentWrapper: {
-    flex: 1,
-    position: 'relative',
   },
   topBar: {
     position: 'absolute',
