@@ -1,0 +1,524 @@
+/**
+ * ANPIP.COM - BROWSER OPTIMIZATION CSS
+ * Chrome, Safari, Firefox, Edge - 2025
+ * 
+ * Füge diese Datei zu deinem HTML <head> hinzu
+ */
+
+/* ============================
+   RESET & NORMALIZATION
+   ============================ */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  box-sizing: border-box;
+}
+
+html {
+  /* Smooth Scrolling (alle Browser) */
+  scroll-behavior: smooth;
+  
+  /* Verhindert Bounce-Effekt (iOS Safari) */
+  overscroll-behavior: none;
+  
+  /* Optimierte Font-Rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  
+  /* 100vh Fix für Mobile (Safari, Chrome) */
+  height: -webkit-fill-available;
+  height: fill-available;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  
+  /* Verhindert Überscrollen */
+  overscroll-behavior-y: none;
+  
+  /* Verhindert Content-Verschiebung */
+  overflow-anchor: none;
+  
+  /* Touch Optimierung */
+  touch-action: pan-y;
+}
+
+/* ============================
+   SAFARI-SPEZIFISCH
+   ============================ */
+
+/* Safe Area Insets (iPhone Notch, Dynamic Island) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Safari Input Shadow entfernen */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+}
+
+/* Safari Video Controls */
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+}
+
+/* ============================
+   CHROME-SPEZIFISCH
+   ============================ */
+
+/* Autofill Styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px white inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Scrollbar Styling (Chrome, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9C27B0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6A0080;
+}
+
+/* ============================
+   FIREFOX-SPEZIFISCH
+   ============================ */
+
+/* Scrollbar Styling (Firefox) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #9C27B0 #f1f1f1;
+}
+
+/* Focus Ring (Firefox) */
+*:focus-visible {
+  outline: 2px solid #9C27B0;
+  outline-offset: 2px;
+}
+
+/* ============================
+   PERFORMANCE OPTIMIERUNGEN
+   ============================ */
+
+/* Hardware Acceleration für Animationen */
+.accelerated {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Verhindert Layout Thrashing */
+.video-container,
+.image-container {
+  contain: layout style paint;
+}
+
+/* Lazy Loading Platzhalter */
+img[loading="lazy"],
+video[loading="lazy"] {
+  background: #f0f0f0;
+}
+
+/* ============================
+   RESPONSIVE TYPOGRAPHY
+   ============================ */
+
+/* Fluid Typography (alle Geräte) */
+:root {
+  /* Smartphone */
+  --font-size-xs: clamp(12px, 2.5vw, 14px);
+  --font-size-sm: clamp(14px, 3vw, 16px);
+  --font-size-base: clamp(16px, 3.5vw, 18px);
+  --font-size-lg: clamp(18px, 4vw, 22px);
+  --font-size-xl: clamp(20px, 4.5vw, 28px);
+  --font-size-xxl: clamp(24px, 5vw, 36px);
+  
+  /* Spacing */
+  --spacing-xs: clamp(4px, 1vw, 8px);
+  --spacing-sm: clamp(8px, 2vw, 12px);
+  --spacing-md: clamp(16px, 3vw, 24px);
+  --spacing-lg: clamp(24px, 4vw, 32px);
+  --spacing-xl: clamp(32px, 5vw, 48px);
+}
+
+/* Tablet */
+@media (min-width: 768px) {
+  :root {
+    --font-size-base: 16px;
+    --font-size-lg: 20px;
+    --font-size-xl: 24px;
+    --font-size-xxl: 32px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  :root {
+    --font-size-base: 18px;
+    --font-size-lg: 22px;
+    --font-size-xl: 28px;
+    --font-size-xxl: 40px;
+  }
+}
+
+/* Ultrawide */
+@media (min-width: 2560px) {
+  :root {
+    --font-size-base: 20px;
+    --font-size-lg: 24px;
+    --font-size-xl: 32px;
+    --font-size-xxl: 48px;
+  }
+}
+
+/* ============================
+   RESPONSIVE CONTAINERS
+   ============================ */
+
+.container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Tablet */
+@media (min-width: 768px) {
+  .container {
+    max-width: 720px;
+  }
+}
+
+/* Laptop */
+@media (min-width: 1024px) {
+  .container {
+    max-width: 960px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1440px) {
+  .container {
+    max-width: 1200px;
+  }
+}
+
+/* Ultrawide */
+@media (min-width: 2560px) {
+  .container {
+    max-width: 1400px;
+  }
+}
+
+/* ============================
+   TOUCH OPTIMIERUNGEN
+   ============================ */
+
+/* Mindest-Touch-Target: 44x44px (Apple) / 48x48px (Material) */
+button,
+a,
+.touch-target {
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hover nur auf Desktop */
+@media (hover: hover) and (pointer: fine) {
+  button:hover,
+  a:hover,
+  .hover-effect:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+  }
+}
+
+/* Active State für Touch */
+@media (hover: none) and (pointer: coarse) {
+  button:active,
+  a:active,
+  .touch-target:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* ============================
+   VIDEO OPTIMIERUNGEN
+   ============================ */
+
+video {
+  /* Verhindert Flackern */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  
+  /* Optimale Qualität */
+  object-fit: cover;
+}
+
+/* ============================
+   SCROLL SNAP (TikTok/Reels-Style)
+   ============================ */
+
+/* FlatList Container - Snap Scrolling */
+[data-testid="flat-list"],
+.scrollview-content-container,
+.video-feed-container {
+  /* CSS Scroll Snap */
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  
+  /* Verhindert Bounce beim Scrollen */
+  overscroll-behavior: contain;
+  
+  /* Hardware Acceleration */
+  -webkit-overflow-scrolling: touch;
+  
+  /* Optimierte Performance */
+  will-change: scroll-position;
+  contain: layout style paint;
+}
+
+/* Einzelne Video-Container */
+.video-item,
+[data-video-item="true"] {
+  /* Snap-Punkt für jedes Video */
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  
+  /* Volle Viewport-Höhe */
+  height: 100vh;
+  height: -webkit-fill-available;
+  
+  /* Verhindert Teilansichten */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  
+  /* Performance */
+  contain: layout style paint;
+}
+
+/* Smooth Scroll für alle Browser */
+@supports (scroll-behavior: smooth) {
+  .video-feed-container {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Safari-spezifisch: Momentum Scrolling */
+@supports (-webkit-overflow-scrolling: touch) {
+  .video-feed-container {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Firefox: Snap Points */
+@supports (scroll-snap-type: y mandatory) {
+  .video-feed-container {
+    scroll-snap-type: y mandatory;
+  }
+}
+
+/* ============================
+   IMAGE OPTIMIERUNGEN
+   ============================ */
+
+img {
+  /* Verhindert Image-Drag */
+  -webkit-user-drag: none;
+  user-select: none;
+  
+  /* Smooth Loading */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  
+  /* Verhindert Layout Shift */
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ============================
+   DARK MODE SUPPORT
+   ============================ */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+  
+  body {
+    background-color: #000;
+    color: #fff;
+  }
+}
+
+/* ============================
+   REDUCED MOTION
+   ============================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ============================
+   PRINT STYLES
+   ============================ */
+
+@media print {
+  *,
+  *::before,
+  *::after {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  video,
+  audio {
+    display: none;
+  }
+}
+
+/* ============================
+   FOLDABLE DEVICES
+   ============================ */
+
+/* Samsung Galaxy Fold */
+@media (min-width: 653px) and (max-width: 717px) {
+  .container {
+    padding: 0 var(--spacing-lg);
+  }
+}
+
+/* Horizontal Fold */
+@media (horizontal-viewport-segments: 2) {
+  .split-view {
+    display: flex;
+  }
+  
+  .split-view > * {
+    flex: 1;
+  }
+}
+
+/* ============================
+   FOCUS STYLES (Accessibility)
+   ============================ */
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid #9C27B0;
+  outline-offset: 2px;
+}
+
+/* ============================
+   SELECTION STYLES
+   ============================ */
+
+::selection {
+  background-color: #9C27B0;
+  color: white;
+}
+
+::-moz-selection {
+  background-color: #9C27B0;
+  color: white;
+}
+
+/* ============================
+   UTILITY CLASSES
+   ============================ */
+
+/* Hide on specific devices */
+.mobile-only {
+  display: block;
+}
+
+.desktop-only {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .mobile-only {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: block;
+  }
+}
+
+/* Aspect Ratios */
+.aspect-16-9 {
+  aspect-ratio: 16 / 9;
+}
+
+.aspect-9-16 {
+  aspect-ratio: 9 / 16;
+}
+
+.aspect-1-1 {
+  aspect-ratio: 1 / 1;
+}
+
+/* Truncate Text */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

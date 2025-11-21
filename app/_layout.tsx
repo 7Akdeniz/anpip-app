@@ -7,6 +7,8 @@ import { useEffect } from 'react';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { I18nProvider } from '@/i18n/I18nContext';
+import { LocationProvider } from '@/contexts/LocationContext';
+import { LocationDetector } from '@/components/LocationDetector';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -50,12 +52,15 @@ function RootLayoutNav() {
 
   return (
     <I18nProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        </Stack>
-      </ThemeProvider>
+      <LocationProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          </Stack>
+          <LocationDetector />
+        </ThemeProvider>
+      </LocationProvider>
     </I18nProvider>
   );
 }

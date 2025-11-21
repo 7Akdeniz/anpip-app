@@ -102,11 +102,12 @@ export default function FeedScreen() {
   }).current;
 
   const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50,
+    itemVisiblePercentThreshold: 80, // Video muss mindestens 80% sichtbar sein
+    minimumViewTime: 100, // Mindestens 100ms sichtbar
   }).current;
 
   const renderVideoItem = ({ item: video, index }: { item: VideoType; index: number }) => (
-    <View style={styles.videoContainer}>
+    <View style={styles.videoContainer} data-video-item="true">
       {/* Video-Hintergrund (Vollbild 9:16) */}
       <TouchableOpacity 
         style={styles.videoBackground}
@@ -305,11 +306,17 @@ export default function FeedScreen() {
           data={videos}
           renderItem={renderVideoItem}
           keyExtractor={(item) => item.id}
-          pagingEnabled
+          pagingEnabled={true}
           showsVerticalScrollIndicator={false}
           snapToInterval={SCREEN_HEIGHT}
-          snapToAlignment="start"
+          snapToAlignment="center"
           decelerationRate="fast"
+          disableIntervalMomentum={true}
+          scrollEventThrottle={16}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={3}
+          windowSize={5}
+          initialNumToRender={2}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           refreshControl={
@@ -377,6 +384,7 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT,
     position: 'relative',
     backgroundColor: '#000000',
+    overflow: 'hidden',
   },
   videoBackground: {
     position: 'absolute',

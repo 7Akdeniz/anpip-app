@@ -15,6 +15,8 @@ import { useI18n } from '@/i18n/I18nContext';
 import { supabase } from '@/lib/supabase';
 import { Video as ExpoVideo, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
 import { router } from 'expo-router';
+import { useLocation } from '@/contexts/LocationContext';
+import { calculateDistance } from '@/lib/locationService';
 
 // Responsive Breakpoints
 const MOBILE_MAX_WIDTH = 768;
@@ -44,6 +46,15 @@ interface VideoType {
   created_at: string;
   user_id?: string;
   username?: string;
+  is_market_item?: boolean;
+  location_city?: string;
+  location_country?: string;
+  location_lat?: number;
+  location_lon?: number;
+  location_display_name?: string;
+  market_category?: string;
+  market_subcategory?: string;
+  distance?: number; // Distanz zum Nutzer in km
 }
 
 type TopTab = 'live' | 'following' | 'market' | 'visitors' | 'all';
@@ -51,12 +62,15 @@ type TopTab = 'live' | 'following' | 'market' | 'visitors' | 'all';
 export default function FeedScreen() {
   const { t } = useI18n();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const { userLocation } = useLocation(); // Nutzer-Standort
+  
   const [videos, setVideos] = useState<VideoType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TopTab>('all');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [localOnly, setLocalOnly] = useState(true); // Standardmäßig lokale Anzeigen
   const flatListRef = useRef<FlatList>(null);
   
   // Responsive Layout Detection
@@ -90,7 +104,7 @@ export default function FeedScreen() {
 
   const loadVideos = async () => {
     try {
-      console.log('📥 Lade Videos...', 'Tab:', activeTab);
+      console.log('📥 Lade Videos...', 'Tab:', activeTab, 'Lokal:', localOnly);
       
       // Query basierend auf aktivem Tab
       let query = supabase
@@ -112,7 +126,7 @@ export default function FeedScreen() {
 
       const { data, error } = await query
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(100); // Mehr Videos laden für besseres lokales Sortieren
 
       if (error) {
         console.error('❌ Fehler beim Laden:', error);
@@ -120,15 +134,65 @@ export default function FeedScreen() {
       }
 
       console.log('✅ Videos geladen:', data?.length || 0);
-      if (data && data.length > 0) {
+      
+      let processedVideos = data || [];
+
+      // Standortbasierte Sortierung für Market-Tab
+      if (activeTab === 'market' && userLocation && processedVideos.length > 0) {
+        console.log('📍 Sortiere Market-Videos nach Standort...');
+        
+        // Berechne Distanz für jedes Video
+        processedVideos = processedVideos.map(video => {
+          if (video.location_lat && video.location_lon) {
+            const distance = calculateDistance(
+              userLocation.lat,
+              userLocation.lon,
+              video.location_lat,
+              video.location_lon
+            );
+            return { ...video, distance };
+          }
+          return { ...video, distance: 99999 }; // Videos ohne Standort ans Ende
+        });
+
+        // Filtern nach lokalem Standort (wenn aktiviert)
+        if (localOnly) {
+          // Zeige nur Videos aus gleicher Stadt oder max 50km Umkreis
+          processedVideos = processedVideos.filter(video => {
+            if (video.location_city === userLocation.city) {
+              return true; // Gleiche Stadt
+            }
+            return video.distance !== undefined && video.distance <= 50; // Max 50km
+          });
+          
+          console.log(`📍 Lokale Filter: ${processedVideos.length} Videos in ${userLocation.city} oder <50km`);
+        }
+
+        // Sortiere nach Distanz (nächste zuerst)
+        processedVideos.sort((a, b) => {
+          const distA = a.distance ?? 99999;
+          const distB = b.distance ?? 99999;
+          return distA - distB;
+        });
+
+        console.log('📍 Videos nach Distanz sortiert:', processedVideos.slice(0, 5).map(v => ({
+          city: v.location_city,
+          distance: v.distance,
+        })));
+      }
+
+      if (processedVideos.length > 0) {
         console.log('🎥 Erstes Video:', {
-          id: data[0].id,
-          video_url: data[0].video_url,
-          description: data[0].description,
-          is_market_item: data[0].is_market_item
+          id: processedVideos[0].id,
+          video_url: processedVideos[0].video_url,
+          description: processedVideos[0].description,
+          is_market_item: processedVideos[0].is_market_item,
+          location: processedVideos[0].location_city,
+          distance: processedVideos[0].distance,
         });
       }
-      setVideos(data || []);
+      
+      setVideos(processedVideos);
     } catch (error) {
       console.error('Fehler:', error);
     } finally {
@@ -150,9 +214,9 @@ export default function FeedScreen() {
   }, []);
 
   useEffect(() => {
-    // Videos neu laden wenn Tab wechselt
+    // Videos neu laden wenn Tab wechselt oder Filter sich ändert
     loadVideos();
-  }, [activeTab]);
+  }, [activeTab, localOnly]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -372,6 +436,38 @@ export default function FeedScreen() {
         </View>
       </View>
 
+      {/* Standort-Filter für Market-Tab */}
+      {activeTab === 'market' && userLocation && (
+        <View style={styles.locationFilterBar}>
+          <View style={styles.locationInfo}>
+            <Ionicons name="location" size={14} color={Colors.primary} />
+            <Typography variant="caption" style={styles.locationText}>
+              {userLocation.city}, {userLocation.country}
+            </Typography>
+          </View>
+          
+          <TouchableOpacity
+            style={styles.locationToggle}
+            onPress={() => setLocalOnly(!localOnly)}
+          >
+            <Ionicons 
+              name={localOnly ? 'location' : 'globe-outline'} 
+              size={14} 
+              color={localOnly ? Colors.primary : 'rgba(255,255,255,0.6)'} 
+            />
+            <Typography 
+              variant="caption" 
+              style={[
+                styles.locationToggleText,
+                localOnly && styles.locationToggleTextActive
+              ]}
+            >
+              {localOnly ? 'Lokal' : 'Global'}
+            </Typography>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Video Feed - Responsive Layout */}
       {loading ? (
         <View style={[styles.loadingContainer, { height: videoHeight }]}>
@@ -471,6 +567,48 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 1,
     marginTop: 4,
+  },
+  locationFilterBar: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
+    right: 0,
+    zIndex: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backdropFilter: 'blur(10px)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  locationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  locationText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+  },
+  locationToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  locationToggleText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  locationToggleTextActive: {
+    color: Colors.primary,
   },
   mobileFeedWrapper: {
     flex: 1,

@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 
 import { LocationAutocomplete, Location } from '@/components/LocationAutocomplete';
+import { useLocation } from '@/contexts/LocationContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -145,6 +146,8 @@ const MARKET_CATEGORIES = [
 
 export default function UploadScreen() {
   const router = useRouter();
+  const { userLocation } = useLocation(); // Nutze globalen Location-Context
+  
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('public');
@@ -154,6 +157,23 @@ export default function UploadScreen() {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+
+  // Auto-Fill Location beim Aktivieren des Market-Modus
+  useEffect(() => {
+    if (isForMarket && userLocation && !selectedLocation) {
+      // Konvertiere UserLocation zu Location-Format
+      const autoLocation: Location = {
+        id: 0,
+        city: userLocation.city,
+        country: userLocation.country,
+        lat: userLocation.lat,
+        lon: userLocation.lon,
+        displayName: userLocation.displayName,
+      };
+      setSelectedLocation(autoLocation);
+      console.log('📍 Standort automatisch vorausgefüllt:', autoLocation);
+    }
+  }, [isForMarket, userLocation]);
 
   const pickVideo = async () => {
     // Berechtigungen anfragen
@@ -500,9 +520,20 @@ export default function UploadScreen() {
           {/* Stadt-Auswahl (Schritt 1) */}
           {isForMarket && (
             <View style={styles.locationContainer}>
-              <Typography variant="caption" style={styles.categoriesLabel}>
-                1. Stadt wählen (Pflicht):
-              </Typography>
+              <View style={styles.locationHeaderRow}>
+                <Typography variant="caption" style={styles.categoriesLabel}>
+                  1. Stadt wählen (Pflicht):
+                </Typography>
+                {selectedLocation && userLocation && (
+                  <View style={styles.autoDetectedBadge}>
+                    <Ionicons name="location" size={12} color={Colors.primary} />
+                    <Typography variant="caption" style={styles.autoDetectedText}>
+                      {userLocation.source === 'gps' ? 'GPS erkannt' : 
+                       userLocation.source === 'ip' ? 'IP erkannt' : 'Manuell'}
+                    </Typography>
+                  </View>
+                )}
+              </View>
               <LocationAutocomplete
                 onSelect={(location) => {
                   setSelectedLocation(location);
@@ -511,6 +542,11 @@ export default function UploadScreen() {
                 placeholder="Stadt suchen (z.B. Berlin, Hamburg, Istanbul)..."
                 initialValue={selectedLocation}
               />
+              {selectedLocation && (
+                <Typography variant="caption" style={styles.locationHint}>
+                  📍 {selectedLocation.displayName}
+                </Typography>
+              )}
             </View>
           )}
 
@@ -1004,6 +1040,32 @@ const styles = StyleSheet.create({
   // Location Container
   locationContainer: {
     marginTop: 12,
+  },
+  locationHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  autoDetectedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: 'rgba(139,92,246,0.15)',
+  },
+  autoDetectedText: {
+    color: Colors.primary,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  locationHint: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 
   // Subcategory Chips
