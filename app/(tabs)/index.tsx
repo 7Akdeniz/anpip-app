@@ -498,31 +498,34 @@ export default function FeedScreen() {
   
   return (
     <View style={[styles.container, isDesktop && styles.desktopContainer]}>
-      {/* Top-Bar (transparent overlay) */}
+      {/* Container für Tablet/Desktop - begrenzt Breite */}
       <View style={[
-        styles.topBar, 
-        isMobile && { left: 0, right: 0 },
-        (isDesktop || isTablet) && { 
-          left: '50%',
-          marginLeft: -(videoWidth / 2),
+        styles.contentWrapper,
+        (isDesktop || isTablet) && {
           width: videoWidth,
-        },
-        isDesktop && styles.desktopTopBar,
+          alignSelf: 'center',
+        }
       ]}>
-        {/* Top Tabs - Mitte */}
-        <View style={styles.topTabs}>
-          {renderTopTab('live', 'radio-outline')}
-          {renderTopTab('following', 'people-outline')}
-          {renderTopTab('market', 'pricetag-outline')}
-          {renderTopTab('visitors', 'footsteps-outline')}
-          {renderTopTab('all', 'videocam-outline')}
-        </View>
+        {/* Top-Bar (transparent overlay) */}
+        <View style={[
+          styles.topBar, 
+          isMobile && { left: 0, right: 0 },
+          isDesktop && styles.desktopTopBar,
+        ]}>
+          {/* Top Tabs - Mitte */}
+          <View style={styles.topTabs}>
+            {renderTopTab('live', 'radio-outline')}
+            {renderTopTab('following', 'people-outline')}
+            {renderTopTab('market', 'pricetag-outline')}
+            {renderTopTab('visitors', 'footsteps-outline')}
+            {renderTopTab('all', 'videocam-outline')}
+          </View>
 
-        {/* Sprachauswahl - Rechts */}
-        <View style={styles.languageSwitcherContainer}>
-          <LanguageSwitcher />
+          {/* Sprachauswahl - Rechts */}
+          <View style={styles.languageSwitcherContainer}>
+            <LanguageSwitcher />
+          </View>
         </View>
-      </View>
 
       {/* Standort-Filter für Market-Tab - DEAKTIVIERT */}
       {false && activeTab === 'market' && userLocation && (
@@ -601,6 +604,7 @@ export default function FeedScreen() {
           />
         </View>
       )}
+      </View>
     </View>
   );
 }
@@ -613,9 +617,15 @@ const styles = StyleSheet.create({
   desktopContainer: {
     backgroundColor: '#0a0a0a',
   },
+  contentWrapper: {
+    flex: 1,
+    position: 'relative',
+  },
   topBar: {
     position: 'absolute',
     top: 0,
+    left: 0,
+    right: 0,
     zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
