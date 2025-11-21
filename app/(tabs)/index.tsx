@@ -254,7 +254,7 @@ export default function FeedScreen() {
     itemVisiblePercentThreshold: 50,
   }).current;
 
-  const renderVideoItem = ({ item: video, index }: { item: Video; index: number }) => {
+  const renderVideoItem = ({ item: video, index }: { item: VideoType; index: number }) => {
     const isActive = index === currentIndex;
 
     const handleVideoPress = () => {
