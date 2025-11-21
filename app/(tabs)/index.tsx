@@ -256,18 +256,20 @@ export default function FeedScreen() {
 
   const renderVideoItem = ({ item: video, index }: { item: Video; index: number }) => {
     const isActive = index === currentIndex;
-    const videoRef = useRef<HTMLVideoElement>(null);
 
     const handleVideoPress = () => {
-      if (Platform.OS === 'web' && videoRef.current) {
-        if (playingVideo === video.id) {
-          videoRef.current.pause();
-          setPlayingVideo(null);
-        } else {
-          videoRef.current.play().catch(() => {
-            // Autoplay blocked
-          });
-          setPlayingVideo(video.id);
+      if (Platform.OS === 'web') {
+        const videoElement = document.getElementById(`video-${video.id}`) as HTMLVideoElement;
+        if (videoElement) {
+          if (playingVideo === video.id) {
+            videoElement.pause();
+            setPlayingVideo(null);
+          } else {
+            videoElement.play().catch(() => {
+              // Autoplay blocked
+            });
+            setPlayingVideo(video.id);
+          }
         }
       } else {
         if (playingVideo === video.id) {
@@ -294,7 +296,7 @@ export default function FeedScreen() {
         {/* Video Player - Web vs Native */}
         {Platform.OS === 'web' ? (
           <video
-            ref={videoRef}
+            id={`video-${video.id}`}
             src={video.video_url}
             style={{
               width: '100%',
