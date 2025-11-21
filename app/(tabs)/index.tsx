@@ -221,6 +221,25 @@ export default function FeedScreen() {
     loadVideos();
   }, [activeTab, localOnly]);
 
+  // Autoplay: Erstes Video automatisch starten
+  useEffect(() => {
+    if (videos.length > 0 && !playingVideo) {
+      setPlayingVideo(videos[0].id);
+      
+      // Für Web: Video direkt abspielen
+      if (Platform.OS === 'web') {
+        setTimeout(() => {
+          const firstVideo = document.getElementById(`video-${videos[0].id}`) as HTMLVideoElement;
+          if (firstVideo) {
+            firstVideo.play().catch((error) => {
+              console.log('Autoplay blocked, waiting for user interaction');
+            });
+          }
+        }, 300);
+      }
+    }
+  }, [videos]);
+
   const onRefresh = () => {
     setRefreshing(true);
     loadVideos();
