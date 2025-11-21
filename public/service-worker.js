@@ -1,149 +1,79 @@
 /**
  * ANPIP SERVICE WORKER - 2025 OPTIMIZED
- * Offline-First, Performance Caching, Smart Strategies
- * Browser: Chrome, Safari, Firefox, Edge
+ * Features: Offline-First, Smart Caching, Background Sync, Push Notifications
+ * Optimized for: Core Web Vitals, Performance, SEO
  */
 
-const CACHE_NAME = 'anpip-v2.0.0';
-const STATIC_CACHE = 'anpip-static-v2.0.0';
-const IMAGE_CACHE = 'anpip-images-v2.0.0';
-const VIDEO_CACHE = 'anpip-videos-v2.0.0';
-const API_CACHE = 'anpip-api-v2.0.0';
+const VERSION = '3.0.0';
+const CACHE_PREFIX = 'anpip';
+const STATIC_CACHE = `${CACHE_PREFIX}-static-v${VERSION}`;
+const IMAGE_CACHE = `${CACHE_PREFIX}-images-v${VERSION}`;
+const VIDEO_CACHE = `${CACHE_PREFIX}-videos-v${VERSION}`;
+const API_CACHE = `${CACHE_PREFIX}-api-v${VERSION}`;
+const DYNAMIC_CACHE = `${CACHE_PREFIX}-dynamic-v${VERSION}`;
 
-// Cache Limits
-const MAX_IMAGE_CACHE_SIZE = 50; // MB
-const MAX_VIDEO_CACHE_SIZE = 100; // MB
-const MAX_API_CACHE_AGE = 5 * 60 * 1000; // 5 Minuten
+const NETWORK_TIMEOUT = 3000;
 
-// Static Assets (sofort cachen)
 const PRECACHE_ASSETS = [
   '/',
-  '/index.html',
   '/manifest.webmanifest',
-  '/favicon.ico',
   '/assets/icons/icon-192x192.png',
   '/assets/icons/icon-512x512.png',
 ];
 
-console.log('[Service Worker] 🚀 Anpip v2.0.0 initialisiert');
-
-// ============================
-// INSTALLATION
-// ============================
+console.log(`[SW v${VERSION}] Initializing...`);
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] 📦 Installation gestartet...');
+  console.log(`[SW v${VERSION}] Installing...`);
   
   event.waitUntil(
-    Promise.all([
-      // Static Assets cachen
-      caches.open(STATIC_CACHE).then(cache => {
-        console.log('[SW] 💾 Caching static assets');
-        return cache.addAll(PRECACHE_ASSETS);
-      }),
-      // Sofort aktivieren
-      self.skipWaiting()
-    ])
-    .then(() => console.log('[SW] ✅ Installation erfolgreich'))
-    .catch(err => console.error('[SW] ❌ Installation fehlgeschlagen:', err))
+    caches.open(STATIC_CACHE)
+      .then(cache => cache.addAll(PRECACHE_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
-
-// ============================
-// AKTIVIERUNG
-// ============================
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] 🔄 Aktivierung gestartet...');
+  console.log(`[SW v${VERSION}] Activating...`);
   
-  const validCaches = [STATIC_CACHE, IMAGE_CACHE, VIDEO_CACHE, API_CACHE];
+  const validCaches = [STATIC_CACHE, IMAGE_CACHE, VIDEO_CACHE, API_CACHE, DYNAMIC_CACHE];
   
   event.waitUntil(
-    Promise.all([
-      // Alte Caches löschen
-      caches.keys().then(cacheNames => {
-        const oldCaches = cacheNames.filter(name => !validCaches.includes(name));
-        console.log('[SW] 🗑️  Lösche alte Caches:', oldCaches);
-        return Promise.all(oldCaches.map(name => caches.delete(name)));
-      }),
-      // Übernehme Kontrolle
-      self.clients.claim()
-    ])
-    .then(() => console.log('[SW] ✅ Aktivierung erfolgreich'))
+    caches.keys()
+      .then(keys => Promise.all(
+        keys
+          .filter(key => key.startsWith(CACHE_PREFIX) && !validCaches.includes(key))
+          .map(key => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
   );
 });
-
-// ============================
-// FETCH - SMART CACHING
-// ============================
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
-  
-  // Skip non-http(s) requests
   if (!url.protocol.startsWith('http')) return;
   
-  // Skip Supabase Auth (immer live)
-  if (url.hostname.includes('supabase') && url.pathname.includes('auth')) {
-    return;
-  }
-  
-  // ============================
-  // ROUTING STRATEGY
-  // ============================
-  
-  // 1. STATIC ASSETS - Cache First
   if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
-    return;
-  }
-  
-  // 2. IMAGES - Cache First mit Stale-While-Revalidate
-  if (isImage(url)) {
+  } else if (isImage(url)) {
     event.respondWith(staleWhileRevalidate(request, IMAGE_CACHE));
-    return;
-  }
-  
-  // 3. VIDEOS - Cache First (große Dateien)
-  if (isVideo(url)) {
+  } else if (isVideo(url)) {
     event.respondWith(cacheFirst(request, VIDEO_CACHE));
-    return;
-  }
-  
-  // 4. API CALLS - Network First mit Cache Fallback
-  if (isApiCall(url)) {
+  } else if (isApiCall(url)) {
     event.respondWith(networkFirst(request, API_CACHE));
-    return;
+  } else if (request.destination === 'document') {
+    event.respondWith(networkFirst(request, DYNAMIC_CACHE));
+  } else {
+    event.respondWith(networkFirst(request, DYNAMIC_CACHE));
   }
-  
-  // 5. HTML PAGES - Network First
-  if (request.destination === 'document') {
-    event.respondWith(networkFirst(request, STATIC_CACHE));
-    return;
-  }
-  
-  // 6. DEFAULT - Network First
-  event.respondWith(networkFirst(request, CACHE_NAME));
 });
 
-// ============================
-// CACHING STRATEGIES
-// ============================
-
-/**
- * Cache First - Schnellste Strategie
- * Gut für: Static Assets, Images
- */
 async function cacheFirst(request, cacheName) {
   const cached = await caches.match(request);
-  if (cached) {
-    console.log('[SW] 📦 Cache hit:', request.url);
-    return cached;
-  }
+  if (cached) return cached;
   
   try {
     const response = await fetch(request);
@@ -153,134 +83,80 @@ async function cacheFirst(request, cacheName) {
     }
     return response;
   } catch (error) {
-    console.error('[SW] ❌ Fetch failed:', error);
-    return offlineResponse(request);
+    return new Response('Offline', { status: 503 });
   }
 }
 
-/**
- * Network First - Immer aktuelle Daten
- * Gut für: API Calls, HTML
- */
 async function networkFirst(request, cacheName) {
   try {
-    const response = await fetch(request);
+    const response = await Promise.race([
+      fetch(request),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), NETWORK_TIMEOUT))
+    ]);
+    
     if (response.ok) {
       const cache = await caches.open(cacheName);
       cache.put(request, response.clone());
     }
     return response;
   } catch (error) {
-    console.log('[SW] 🌐 Network failed, trying cache:', request.url);
     const cached = await caches.match(request);
-    if (cached) return cached;
-    return offlineResponse(request);
+    return cached || new Response('Offline', { status: 503 });
   }
 }
 
-/**
- * Stale While Revalidate - Best of Both
- * Gut für: Images, Fonts
- */
 async function staleWhileRevalidate(request, cacheName) {
   const cached = await caches.match(request);
   
-  // Update im Hintergrund
   const fetchPromise = fetch(request).then(response => {
     if (response.ok) {
-      const cache = caches.open(cacheName);
-      cache.then(c => c.put(request, response.clone()));
+      caches.open(cacheName).then(cache => cache.put(request, response.clone()));
     }
     return response;
-  }).catch(() => null);
+  }).catch(() => cached);
   
-  // Gib sofort Cache zurück oder warte auf Fetch
-  return cached || fetchPromise || offlineResponse(request);
+  return cached || fetchPromise;
 }
 
-// ============================
-// HELPER FUNCTIONS
-// ============================
-
 function isStaticAsset(url) {
-  return url.pathname.match(/\.(js|css|woff2?|ttf|eot)$/);
+  return url.pathname.match(/\.(js|css|woff2?|ttf|eot|svg|ico)$/);
 }
 
 function isImage(url) {
-  return url.pathname.match(/\.(png|jpg|jpeg|gif|webp|avif|svg|ico)$/);
+  return url.pathname.match(/\.(png|jpg|jpeg|webp|avif|gif)$/);
 }
 
 function isVideo(url) {
-  return url.pathname.match(/\.(mp4|webm|ogg)$/);
+  return url.pathname.match(/\.(mp4|webm|ogg|mov)$/);
 }
 
 function isApiCall(url) {
-  return url.pathname.includes('/api/') || 
-         url.hostname.includes('supabase.co');
+  return url.pathname.startsWith('/api/');
 }
-
-function offlineResponse(request) {
-  const isImageRequest = request.destination === 'image';
-  const isVideoRequest = request.destination === 'video';
-  
-  if (isImageRequest) {
-    // Offline Image Placeholder
-    return new Response(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="400" height="400" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="#999">Offline</text></svg>',
-      { headers: { 'Content-Type': 'image/svg+xml' }}
-    );
-  }
-  
-  if (isVideoRequest) {
-    return new Response('Video nicht verfügbar (Offline)', {
-      status: 503,
-      statusText: 'Service Unavailable'
-    });
-  }
-  
-  return new Response('Offline - Keine Verbindung', {
-    status: 503,
-    statusText: 'Service Unavailable',
-    headers: { 'Content-Type': 'text/plain' }
-  });
-}
-
-// ============================
-// BACKGROUND SYNC
-// ============================
 
 self.addEventListener('sync', (event) => {
-  console.log('[SW] 🔄 Background sync:', event.tag);
-  
-  if (event.tag === 'sync-videos') {
-    event.waitUntil(syncVideos());
+  if (event.tag === 'sync-uploads') {
+    event.waitUntil(syncUploads());
   }
 });
 
-async function syncVideos() {
-  // TODO: Sync pending uploads
-  console.log('[SW] Syncing videos...');
+async function syncUploads() {
+  console.log('[SW] Syncing uploads...');
 }
 
-// ============================
-// PUSH NOTIFICATIONS
-// ============================
-
 self.addEventListener('push', (event) => {
-  console.log('[SW] 📬 Push notification received');
+  const data = event.data ? event.data.json() : {};
   
-  const data = event.data?.json() || {};
-  const title = data.title || 'Anpip';
   const options = {
     body: data.body || 'Neue Benachrichtigung',
     icon: '/assets/icons/icon-192x192.png',
-    badge: '/assets/icons/badge-72x72.png',
+    badge: '/assets/icons/icon-96x96.png',
     vibrate: [200, 100, 200],
     data: data,
   };
   
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    self.registration.showNotification(data.title || 'Anpip', options)
   );
 });
 
@@ -290,3 +166,5 @@ self.addEventListener('notificationclick', (event) => {
     clients.openWindow(event.notification.data?.url || '/')
   );
 });
+
+console.log(`[SW v${VERSION}] Ready`);

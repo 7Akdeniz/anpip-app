@@ -11,6 +11,7 @@ import { Spacing } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CustomRepeatIcon } from '@/components/CustomRepeatIcon';
+import { useRouter } from 'expo-router';
 
 // Dummy-Videos
 const DUMMY_VIDEOS = Array.from({ length: 12 }, (_, i) => ({
@@ -23,13 +24,17 @@ type TopTab = 'videos' | 'likes' | 'public';
 
 export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<TopTab>('videos');
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
       {/* Top Bar mit Icons wie im Feed */}
       <View style={styles.topBar}>
         <View style={styles.topBarContent}>
-          <TouchableOpacity style={styles.topBarButton}>
+          <TouchableOpacity 
+            style={styles.topBarButton}
+            onPress={() => router.push('/(tabs)/settings' as any)}
+          >
             <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={{ width: 40 }} />

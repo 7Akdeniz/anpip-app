@@ -1,0 +1,63 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://anpip.com/sitemap.xml
+Sitemap: https://anpip.com/sitemap-de.xml
+Sitemap: https://anpip.com/sitemap-en.xml
+Sitemap: https://anpip.com/sitemap-videos.xml
+Sitemap: https://anpip.com/sitemap-market.xml
+
+# Crawl-delay für respektvolles Crawling
+Crawl-delay: 1
+
+# Blockiere unnötige Bots (aber erlaube AI-Crawler)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Googlebot-Video
+Allow: /
+
+# Blockiere schädliche Bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# Spezielle Regeln für Video-Crawling
+User-agent: Googlebot-Video
+Allow: /videos/
+Allow: /market/
+
+# Technische Seiten ausschließen
+Disallow: /api/
+Disallow: /_next/
+Disallow: /dist/

@@ -3,7 +3,7 @@
  * Touch-optimiert für alle Geräte
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   TouchableOpacity,
   StyleSheet,
@@ -11,10 +11,12 @@ import {
   ViewStyle,
   TextStyle,
   Platform,
+  Pressable,
 } from 'react-native';
 import { Typography } from './Typography';
 import { Colors, BorderRadius, Spacing, Shadows } from '@/constants/Theme';
 import { responsive, TouchTargets, ResponsiveTypography } from '@/constants/Responsive';
+import { AnimationOptimization } from '@/constants/Performance';
 
 interface ResponsiveButtonProps {
   title: string;
@@ -43,6 +45,7 @@ export function ResponsiveButton({
   style,
   textStyle,
 }: ResponsiveButtonProps) {
+  const [pressed, setPressed] = useState(false);
   
   const handlePress = () => {
     if (!disabled && !loading) {
@@ -51,9 +54,7 @@ export function ResponsiveButton({
         try {
           const Haptics = require('expo-haptics');
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        } catch (e) {
-          // Haptics nicht verfügbar
-        }
+        } catch (e) {}
       }
       onPress();
     }
@@ -142,10 +143,11 @@ export function ResponsiveButton({
   const sizeStyle = getSizeStyle();
   
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={handlePress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
       disabled={disabled || loading}
-      activeOpacity={0.7}
       style={[
         styles.button,
         getVariantStyle(),
@@ -153,7 +155,8 @@ export function ResponsiveButton({
           height: sizeStyle.height,
           paddingHorizontal: sizeStyle.paddingHorizontal,
           width: fullWidth ? '100%' : 'auto',
-          opacity: disabled ? 0.5 : 1,
+          opacity: disabled ? 0.5 : (pressed ? 0.7 : 1),
+          transform: [{ scale: pressed ? 0.98 : 1 }],
         },
         variant === 'primary' && Shadows.small,
         style,
@@ -168,9 +171,7 @@ export function ResponsiveButton({
         <ActivityIndicator color={getTextColor()} />
       ) : (
         <>
-          {icon && iconPosition === 'left' && (
-            <>{icon}</>
-          )}
+          {icon && iconPosition === 'left' && icon}
           
           <Typography
             variant="button"
@@ -183,12 +184,10 @@ export function ResponsiveButton({
             {title}
           </Typography>
           
-          {icon && iconPosition === 'right' && (
-            <>{icon}</>
-          )}
+          {icon && iconPosition === 'right' && icon}
         </>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -206,11 +205,5 @@ const styles = StyleSheet.create({
         userSelect: 'none',
       } as any,
     }),
-  },
-  iconLeft: {
-    marginRight: Spacing.xs,
-  },
-  iconRight: {
-    marginLeft: Spacing.xs,
   },
 });

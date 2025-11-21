@@ -3,8 +3,8 @@
  * Adaptive Card-Komponente für alle Geräte
  */
 
-import React from 'react';
-import { View, StyleSheet, ViewStyle, TouchableOpacity, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, ViewStyle, Pressable, Platform } from 'react-native';
 import { Colors, BorderRadius, Spacing, Shadows } from '@/constants/Theme';
 import { responsive, ResponsiveSpacing } from '@/constants/Responsive';
 
@@ -27,6 +27,7 @@ export function ResponsiveCard({
   hoverable = true,
   fullWidth = false,
 }: ResponsiveCardProps) {
+  const [pressed, setPressed] = useState(false);
   
   // Responsive Padding
   const cardPadding = padding ?? responsive.responsive({
@@ -75,6 +76,7 @@ export function ResponsiveCard({
     padding: cardPadding,
     borderRadius,
     width: fullWidth ? '100%' : 'auto',
+    opacity: pressed ? 0.9 : 1,
     ...getVariantStyle(),
   };
   
@@ -82,19 +84,21 @@ export function ResponsiveCard({
   const webStyle = Platform.OS === 'web' ? {
     cursor: onPress ? 'pointer' : 'default',
     userSelect: 'none',
+    transition: 'opacity 0.2s ease-in-out',
   } : {};
   
   if (onPress) {
     return (
-      <TouchableOpacity
+      <Pressable
         onPress={onPress}
-        activeOpacity={0.7}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
         style={[cardStyle, webStyle as any, style]}
         accessible={true}
         accessibilityRole="button"
       >
         {children}
-      </TouchableOpacity>
+      </Pressable>
     );
   }
   

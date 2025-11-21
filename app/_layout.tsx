@@ -4,11 +4,17 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { I18nProvider } from '@/i18n/I18nContext';
 import { LocationProvider } from '@/contexts/LocationContext';
 import { LocationDetector } from '@/components/LocationDetector';
+
+// Performance & Analytics
+import { initWebVitals } from '@/lib/webVitals';
+import { setupLazyLoading, setupPrefetching, addResourceHints } from '@/lib/performance';
+import { setupKeyboardNavigation, setupAriaLiveRegion, setupSkipLinks } from '@/lib/accessibility';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -39,6 +45,46 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  // Initialize Performance Monitoring & Optimizations
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    // Web Vitals Tracking
+    initWebVitals((metrics) => {
+      console.log('📊 Web Vitals:', {
+        LCP: metrics.lcp ? `${Math.round(metrics.lcp)}ms` : 'N/A',
+        FID: metrics.fid ? `${Math.round(metrics.fid)}ms` : 'N/A',
+        CLS: metrics.cls ? metrics.cls.toFixed(3) : 'N/A',
+        INP: metrics.inp ? `${Math.round(metrics.inp)}ms` : 'N/A',
+      });
+
+      // Send to analytics endpoint
+      fetch('/api/analytics/vitals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metrics),
+      }).catch(console.error);
+    });
+
+    // Performance Optimizations
+    setupLazyLoading();
+    setupPrefetching();
+
+    // DNS Prefetch & Preconnect
+    addResourceHints([
+      { rel: 'dns-prefetch', href: 'https://fonts.googleapis.com' },
+      { rel: 'dns-prefetch', href: 'https://fonts.gstatic.com' },
+      { rel: 'preconnect', href: 'https://fkmhucsjybyhjrgodwcx.supabase.co', crossOrigin: true },
+    ]);
+
+    // Accessibility
+    setupKeyboardNavigation();
+    setupAriaLiveRegion();
+    setupSkipLinks();
+
+    console.log('✅ Performance & Accessibility initialized');
+  }, []);
 
   if (!loaded) {
     return null;

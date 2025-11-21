@@ -1,0 +1,12 @@
+{
+  "name": "autopilot-cron",
+  "version": "1.0.0",
+  "description": "Anpip Autopilot Cron Job - Runs daily optimization tasks",
+  "main": "index.ts",
+  "scripts": {
+    "start": "deno run --allow-all index.ts"
+  },
+  "keywords": ["autopilot", "cron", "optimization"],
+  "author": "Anpip.com",
+  "license": "MIT"
+}

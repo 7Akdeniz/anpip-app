@@ -10,7 +10,6 @@ import type { TextStyle } from 'react-native';
 import { Typography } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useI18n } from '@/i18n/I18nContext';
 import { supabase } from '@/lib/supabase';
 import { Video as ExpoVideo, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
@@ -497,33 +496,18 @@ export default function FeedScreen() {
   };
   
   return (
-    <View style={[
-      styles.container, 
-      isDesktop && styles.desktopContainer,
-      (isDesktop || isTablet) && {
-        maxWidth: videoWidth,
-        alignSelf: 'center',
-      }
-    ]}>
-        {/* Top-Bar (transparent overlay) */}
-        <View style={[
-          styles.topBar, 
-          isDesktop && styles.desktopTopBar,
-        ]}>
-          {/* Top Tabs - Mitte */}
-          <View style={styles.topTabs}>
-            {renderTopTab('live', 'radio-outline')}
-            {renderTopTab('following', 'people-outline')}
-            {renderTopTab('market', 'pricetag-outline')}
-            {renderTopTab('visitors', 'footsteps-outline')}
-            {renderTopTab('all', 'videocam-outline')}
-          </View>
-
-          {/* Sprachauswahl - Rechts */}
-          <View style={styles.languageSwitcherContainer}>
-            <LanguageSwitcher />
-          </View>
+    <View style={[styles.container, isDesktop && styles.desktopContainer]}>
+      {/* Top-Bar (transparent overlay) */}
+      <View style={[styles.topBar, isDesktop && styles.desktopTopBar]}>
+        {/* Top Tabs - Mitte */}
+        <View style={styles.topTabs}>
+          {renderTopTab('live', 'radio-outline')}
+          {renderTopTab('following', 'people-outline')}
+          {renderTopTab('market', 'pricetag-outline')}
+          {renderTopTab('visitors', 'footsteps-outline')}
+          {renderTopTab('all', 'videocam-outline')}
         </View>
+      </View>
 
       {/* Standort-Filter für Market-Tab - DEAKTIVIERT */}
       {false && activeTab === 'market' && userLocation && (
@@ -531,7 +515,7 @@ export default function FeedScreen() {
           <View style={styles.locationInfo}>
             <Ionicons name="location" size={14} color={Colors.primary} />
             <Typography variant="caption" style={styles.locationText}>
-              {userLocation.city}, {userLocation.country}
+              {userLocation?.city}, {userLocation?.country}
             </Typography>
           </View>
           
@@ -546,10 +530,7 @@ export default function FeedScreen() {
             />
             <Typography 
               variant="caption" 
-              style={[
-                styles.locationToggleText,
-                localOnly && styles.locationToggleTextActive
-              ]}
+              style={localOnly ? styles.locationToggleTextActive : styles.locationToggleText}
             >
               {localOnly ? 'Lokal' : 'Global'}
             </Typography>
@@ -610,7 +591,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
-    width: '100%',
   },
   desktopContainer: {
     backgroundColor: '#0a0a0a',
@@ -695,10 +675,12 @@ const styles = StyleSheet.create({
   locationToggleText: {
     color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   locationToggleTextActive: {
     color: Colors.primary,
+    fontSize: 11,
+    fontWeight: '600' as const,
   },
   mobileFeedWrapper: {
     flex: 1,

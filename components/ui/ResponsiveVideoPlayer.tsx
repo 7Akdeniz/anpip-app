@@ -179,9 +179,7 @@ export function ResponsiveVideoPlayer({
       
       {/* Custom Controls */}
       {showControls && showControlsState && (
-        <View
-          style={[styles.controls, { opacity: showControlsState ? 1 : 0 }]}
-        >
+        <View style={styles.controls}>
           {/* Center Play/Pause Button */}
           <TouchableOpacity
             style={styles.centerControl}

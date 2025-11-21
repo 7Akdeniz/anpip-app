@@ -93,7 +93,7 @@ export default function TabLayout() {
           title: 'Search',
           tabBarIcon: ({ color, size }) => (
             <Ionicons 
-              name={isMessagesScreen ? "call-outline" : "search-outline"} 
+              name="search-outline" 
               size={size} 
               color={color} 
               style={{
@@ -164,7 +164,7 @@ export default function TabLayout() {
           title: 'Menu',
           tabBarIcon: ({ color, size }) => (
             <Ionicons 
-              name={isMessagesScreen ? "videocam-outline" : "person-outline"} 
+              name="person-outline" 
               size={size} 
               color={color} 
               style={{

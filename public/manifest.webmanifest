@@ -1,90 +1,179 @@
 {
   "id": "com.anpip.app",
-  "name": "Anpip - Social Media Platform",
+  "name": "Anpip - Social Video Platform",
   "short_name": "Anpip",
-  "description": "Teile Videos, Momente und Erlebnisse mit Freunden weltweit",
-  "start_url": "/",
+  "description": "Teile Videos, Momente und lokale Angebote weltweit. Moderne Social Media Plattform für 9:16 Videos.",
+  "start_url": "/?utm_source=pwa",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#000000",
   "theme_color": "#0ea5e9",
   "orientation": "portrait-primary",
   "lang": "de-DE",
   "dir": "ltr",
   "scope": "/",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/assets/icons/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/assets/icons/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/assets/icons/icon-128x128.png",
       "sizes": "128x128",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/assets/icons/icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/assets/icons/icon-152x152.png",
       "sizes": "152x152",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/assets/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/assets/icons/icon-384x384.png",
       "sizes": "384x384",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/assets/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
+      "purpose": "any"
+    },
     {
       "src": "/assets/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "form_factor": "narrow"
+      "purpose": "maskable"
     }
   ],
-  "categories": ["social", "entertainment", "photo"],
+  "screenshots": [
+    {
+      "src": "/assets/screenshots/mobile-feed.png",
+      "sizes": "540x960",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Video Feed"
+    },
+    {
+      "src": "/assets/screenshots/desktop-feed.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop View"
+    }
+  ],
+  "categories": ["social", "entertainment", "photo", "video"],
   "shortcuts": [
     {
       "name": "Upload Video",
       "short_name": "Upload",
       "description": "Neues Video hochladen",
-      "url": "/upload",
-      "icons": [{ "src": "/assets/icons/icon-192x192.png", "sizes": "192x192" }]
+      "url": "/upload?utm_source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/assets/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Explore",
       "short_name": "Entdecken",
       "description": "Neue Videos entdecken",
-      "url": "/explore",
-      "icons": [{ "src": "/assets/icons/icon-192x192.png", "sizes": "192x192" }]
+      "url": "/explore?utm_source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/assets/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Market",
+      "short_name": "Market",
+      "description": "Lokale Angebote finden",
+      "url": "/feed?tab=market&utm_source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/assets/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "short_name": "Profil",
+      "description": "Dein Profil ansehen",
+      "url": "/profile?utm_source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/assets/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ],
   "share_target": {
@@ -92,12 +181,42 @@
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
       "files": [
         {
           "name": "video",
-          "accept": ["video/*"]
+          "accept": ["video/*", "video/mp4", "video/webm", "video/quicktime"]
+        },
+        {
+          "name": "image",
+          "accept": ["image/*", "image/jpeg", "image/png", "image/webp"]
         }
       ]
     }
-  }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+anpip",
+      "url": "/?protocol=%s"
+    }
+  ],
+  "related_applications": [],
+  "file_handlers": [
+    {
+      "action": "/upload",
+      "accept": {
+        "video/*": [".mp4", ".webm", ".mov"],
+        "image/*": [".jpg", ".jpeg", ".png", ".webp"]
+      }
+    }
+  ],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "handle_links": "preferred"
 }
