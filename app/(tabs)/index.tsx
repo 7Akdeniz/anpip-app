@@ -18,6 +18,9 @@ import { router } from 'expo-router';
 import { useLocation } from '@/contexts/LocationContext';
 import { calculateDistance } from '@/lib/locationService';
 
+// Web Video Component
+const WebVideo = Platform.OS === 'web' ? require('react').createElement : null;
+
 // Responsive Breakpoints
 const MOBILE_MAX_WIDTH = 768;
 const TABLET_MAX_WIDTH = 1366; // iPad Pro 12.9" landscape
@@ -228,6 +231,22 @@ export default function FeedScreen() {
       const visibleItem = viewableItems[0];
       setCurrentIndex(visibleItem.index || 0);
       setPlayingVideo(visibleItem.item.id);
+      
+      // Für Web: Video abspielen
+      if (Platform.OS === 'web') {
+        setTimeout(() => {
+          const videoElements = document.querySelectorAll('video');
+          videoElements.forEach((video) => {
+            if (video.src.includes(visibleItem.item.id)) {
+              video.play().catch(() => {
+                // Autoplay blocked
+              });
+            } else {
+              video.pause();
+            }
+          });
+        }, 100);
+      }
     }
   }).current;
 
@@ -237,12 +256,25 @@ export default function FeedScreen() {
 
   const renderVideoItem = ({ item: video, index }: { item: Video; index: number }) => {
     const isActive = index === currentIndex;
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     const handleVideoPress = () => {
-      if (playingVideo === video.id) {
-        setPlayingVideo(null);
+      if (Platform.OS === 'web' && videoRef.current) {
+        if (playingVideo === video.id) {
+          videoRef.current.pause();
+          setPlayingVideo(null);
+        } else {
+          videoRef.current.play().catch(() => {
+            // Autoplay blocked
+          });
+          setPlayingVideo(video.id);
+        }
       } else {
-        setPlayingVideo(video.id);
+        if (playingVideo === video.id) {
+          setPlayingVideo(null);
+        } else {
+          setPlayingVideo(video.id);
+        }
       }
     };
 
@@ -259,17 +291,43 @@ export default function FeedScreen() {
         {/* Video Background Gradient */}
         <View style={styles.videoBackground} />
         
-        {/* Video Player */}
-        <ExpoVideo
-          source={{ uri: video.video_url }}
-          style={styles.videoPlayer}
-          resizeMode={ResizeMode.COVER}
-          shouldPlay={playingVideo === video.id}
-          isLooping
-          useNativeControls={false}
-          isMuted={false}
-          volume={1.0}
-        />
+        {/* Video Player - Web vs Native */}
+        {Platform.OS === 'web' ? (
+          <video
+            ref={videoRef}
+            src={video.video_url}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              position: 'absolute',
+            }}
+            autoPlay={playingVideo === video.id}
+            loop
+            playsInline
+            muted={false}
+            controls={false}
+            webkit-playsinline="true"
+            onLoadedData={(e: any) => {
+              if (playingVideo === video.id) {
+                e.target.play().catch(() => {
+                  // Autoplay blocked - user interaction needed
+                });
+              }
+            }}
+          />
+        ) : (
+          <ExpoVideo
+            source={{ uri: video.video_url }}
+            style={styles.videoPlayer}
+            resizeMode={ResizeMode.COVER}
+            shouldPlay={playingVideo === video.id}
+            isLooping
+            useNativeControls={false}
+            isMuted={false}
+            volume={1.0}
+          />
+        )}
         
         {/* Center Touch Area for Play/Pause */}
         <TouchableOpacity 
