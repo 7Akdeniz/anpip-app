@@ -515,8 +515,8 @@ export default function FeedScreen() {
         </View>
       </View>
 
-      {/* Standort-Filter für Market-Tab */}
-      {activeTab === 'market' && userLocation && (
+      {/* Standort-Filter für Market-Tab - DEAKTIVIERT */}
+      {false && activeTab === 'market' && userLocation && (
         <View style={styles.locationFilterBar}>
           <View style={styles.locationInfo}>
             <Ionicons name="location" size={14} color={Colors.primary} />
