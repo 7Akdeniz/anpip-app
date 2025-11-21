@@ -501,13 +501,13 @@ export default function FeedScreen() {
       {/* Top-Bar (transparent overlay) */}
       <View style={[
         styles.topBar, 
-        isDesktop && styles.desktopTopBar,
+        isMobile && { left: 0, right: 0 },
         (isDesktop || isTablet) && { 
-          alignSelf: 'center',
+          left: '50%',
+          marginLeft: -(videoWidth / 2),
           width: videoWidth,
-          left: 'auto',
-          right: 'auto',
-        }
+        },
+        isDesktop && styles.desktopTopBar,
       ]}>
         {/* Top Tabs - Mitte */}
         <View style={styles.topTabs}>
@@ -616,8 +616,6 @@ const styles = StyleSheet.create({
   topBar: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
     zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
