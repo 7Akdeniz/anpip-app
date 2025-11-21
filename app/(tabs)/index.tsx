@@ -499,7 +499,16 @@ export default function FeedScreen() {
   return (
     <View style={[styles.container, isDesktop && styles.desktopContainer]}>
       {/* Top-Bar (transparent overlay) */}
-      <View style={[styles.topBar, isDesktop && styles.desktopTopBar]}>
+      <View style={[
+        styles.topBar, 
+        isDesktop && styles.desktopTopBar,
+        (isDesktop || isTablet) && { 
+          alignSelf: 'center',
+          width: videoWidth,
+          left: 'auto',
+          right: 'auto',
+        }
+      ]}>
         {/* Top Tabs - Mitte */}
         <View style={styles.topTabs}>
           {renderTopTab('live', 'radio-outline')}
