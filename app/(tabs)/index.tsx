@@ -573,9 +573,9 @@ export default function FeedScreen() {
             data={videos}
             renderItem={renderVideoItem}
             keyExtractor={(item) => item.id}
-            pagingEnabled={isMobile}
-            showsVerticalScrollIndicator={!isMobile}
-            snapToInterval={isMobile ? videoHeight : undefined}
+            pagingEnabled={true}
+            showsVerticalScrollIndicator={false}
+            snapToInterval={videoHeight}
             snapToAlignment="start"
             decelerationRate="fast"
             onViewableItemsChanged={onViewableItemsChanged}
@@ -691,11 +691,19 @@ const styles = StyleSheet.create({
   },
   mobileFeedWrapper: {
     flex: 1,
+    ...(Platform.OS === 'web' && {
+      scrollSnapType: 'y mandatory',
+      overflowY: 'scroll',
+    } as any),
   },
   desktopFeedWrapper: {
     flex: 1,
     alignItems: 'center',
     backgroundColor: '#0a0a0a',
+    ...(Platform.OS === 'web' && {
+      scrollSnapType: 'y mandatory',
+      overflowY: 'scroll',
+    } as any),
   },
   desktopFeedContent: {
     alignItems: 'center',
@@ -713,6 +721,10 @@ const styles = StyleSheet.create({
   videoContainer: {
     position: 'relative',
     backgroundColor: '#000000',
+    ...(Platform.OS === 'web' && {
+      scrollSnapAlign: 'start',
+      scrollSnapStop: 'always',
+    } as any),
   },
   desktopVideoContainer: {
     marginVertical: 16,
