@@ -548,14 +548,35 @@ export default function FeedScreen() {
         </View>
       ) : videos.length === 0 ? (
         <View style={[styles.emptyContainer, { height: videoHeight }]}>
-          <View style={styles.videoBackground} />
-          <Ionicons name="videocam-outline" size={80} color="rgba(255,255,255,0.7)" />
-          <Typography variant="h3" align="center" style={{ marginTop: Spacing.md, color: '#FFFFFF' }}>
+          <View style={[styles.videoBackground, { backgroundColor: '#1a1a1a' }]} />
+          <View style={{ 
+            backgroundColor: 'rgba(14, 165, 233, 0.1)', 
+            borderRadius: 100, 
+            padding: 40,
+            marginBottom: 20
+          }}>
+            <Ionicons name="videocam-outline" size={100} color="#0ea5e9" />
+          </View>
+          <Typography variant="h3" align="center" style={{ marginTop: Spacing.md, color: '#FFFFFF', fontSize: 28, fontWeight: 'bold' }}>
             Noch keine Videos
           </Typography>
-          <Typography variant="caption" align="center" style={{ marginTop: Spacing.sm, color: 'rgba(255,255,255,0.7)' }}>
+          <Typography variant="caption" align="center" style={{ marginTop: Spacing.sm, color: '#0ea5e9', fontSize: 16 }}>
             Lade dein erstes Video hoch!
           </Typography>
+          <TouchableOpacity 
+            style={{ 
+              marginTop: 30,
+              backgroundColor: '#0ea5e9',
+              paddingHorizontal: 40,
+              paddingVertical: 15,
+              borderRadius: 25
+            }}
+            onPress={() => router.push('/upload')}
+          >
+            <Typography variant="body" style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 }}>
+              Video hochladen
+            </Typography>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={isDesktop ? styles.desktopFeedWrapper : styles.mobileFeedWrapper}>
