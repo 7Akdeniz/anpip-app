@@ -548,35 +548,29 @@ export default function FeedScreen() {
         </View>
       ) : videos.length === 0 ? (
         <View style={[styles.emptyContainer, { height: videoHeight }]}>
-          <View style={[styles.videoBackground, { backgroundColor: '#1a1a1a' }]} />
-          <View style={{ 
-            backgroundColor: 'rgba(14, 165, 233, 0.1)', 
-            borderRadius: 100, 
-            padding: 40,
-            marginBottom: 20
-          }}>
-            <Ionicons name="videocam-outline" size={100} color="#0ea5e9" />
-          </View>
-          <Typography variant="h3" align="center" style={{ marginTop: Spacing.md, color: '#FFFFFF', fontSize: 28, fontWeight: 'bold' }}>
-            Noch keine Videos
-          </Typography>
-          <Typography variant="caption" align="center" style={{ marginTop: Spacing.sm, color: '#0ea5e9', fontSize: 16 }}>
-            Lade dein erstes Video hoch!
-          </Typography>
-          <TouchableOpacity 
-            style={{ 
-              marginTop: 30,
-              backgroundColor: '#0ea5e9',
-              paddingHorizontal: 40,
-              paddingVertical: 15,
-              borderRadius: 25
-            }}
-            onPress={() => router.push('/upload')}
-          >
-            <Typography variant="body" style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 }}>
-              Video hochladen
+          <View style={styles.emptyContentBox}>
+            {/* Großes visuelles Element - KEIN Icon, nur CSS */}
+            <View style={styles.emptyIconPlaceholder}>
+              <View style={styles.cameraShape} />
+            </View>
+            
+            <Typography variant="h3" align="center" style={styles.emptyTitle}>
+              Noch keine Videos
             </Typography>
-          </TouchableOpacity>
+            
+            <Typography variant="body" align="center" style={styles.emptySubtitle}>
+              Sei der Erste und teile dein Video!
+            </Typography>
+            
+            <TouchableOpacity 
+              style={styles.uploadButton}
+              onPress={() => router.push('/upload')}
+            >
+              <Typography variant="body" style={styles.uploadButtonText}>
+                + Video hochladen
+              </Typography>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <View style={isDesktop ? styles.desktopFeedWrapper : styles.mobileFeedWrapper}>
@@ -730,7 +724,57 @@ const styles = StyleSheet.create({
   emptyContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#0a0a0a',
+    padding: 20,
+  },
+  emptyContentBox: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 20,
+    padding: 40,
+    maxWidth: 400,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#0ea5e9',
+  },
+  emptyIconPlaceholder: {
+    width: 120,
+    height: 120,
+    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    borderWidth: 3,
+    borderColor: '#0ea5e9',
+  },
+  cameraShape: {
+    width: 60,
+    height: 45,
+    backgroundColor: '#0ea5e9',
+    borderRadius: 8,
+  },
+  emptyTitle: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  emptySubtitle: {
+    color: '#999999',
+    fontSize: 16,
+    marginBottom: 24,
+  },
+  uploadButton: {
+    backgroundColor: '#0ea5e9',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 25,
+    marginTop: 8,
+  },
+  uploadButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   videoContainer: {
     position: 'relative',
