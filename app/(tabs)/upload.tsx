@@ -2,6 +2,8 @@
  * UPLOAD SCREEN - Video hochladen (Apple Style)
  * 
  * Modern Apple-Style mit Glassmorphism, vielen Icons und schönen Animationen
+ * 
+ * WICHTIG: Dieser Screen ist AUTH-PROTECTED - User muss angemeldet sein
  */
 
 import React, { useState, useEffect } from 'react';
@@ -17,6 +19,7 @@ import { BlurView } from 'expo-blur';
 
 import { LocationAutocomplete, Location } from '@/components/LocationAutocomplete';
 import { useLocation } from '@/contexts/LocationContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -145,6 +148,36 @@ const MARKET_CATEGORIES = [
 ];
 
 export default function UploadScreen() {
+  const { checkAuth, isAuthenticated } = useRequireAuth();
+  const router = useRouter();
+  const { userLocation } = useLocation();
+  
+  // Auth-Check beim Mounten
+  useEffect(() => {
+    if (!checkAuth('upload')) {
+      // User wird zum Login-Modal umgeleitet
+      // Nach Login kehrt er zu diesem Screen zurück
+    }
+  }, []);
+
+  // Render nichts wenn nicht authentifiziert
+  if (!isAuthenticated) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Typography variant="body" style={{ marginTop: 16, color: Colors.text }}>
+          Authentifizierung wird geprüft...
+        </Typography>
+      </View>
+    );
+  }
+  
+  // Original Screen Content
+  return <UploadScreenProtected />;
+}
+
+// Eigentlicher Upload Screen (nur für authentifizierte User)
+function UploadScreenProtected() {
   const router = useRouter();
   const { userLocation } = useLocation(); // Nutze globalen Location-Context
   

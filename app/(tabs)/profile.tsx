@@ -12,6 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CustomRepeatIcon } from '@/components/CustomRepeatIcon';
 import { useRouter } from 'expo-router';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { ActivityIndicator } from 'react-native';
+import { Colors } from '@/constants/Theme';
 
 // Dummy-Videos
 const DUMMY_VIDEOS = Array.from({ length: 12 }, (_, i) => ({
@@ -23,8 +26,28 @@ const DUMMY_VIDEOS = Array.from({ length: 12 }, (_, i) => ({
 type TopTab = 'videos' | 'likes' | 'public';
 
 export default function ProfileScreen() {
+  const { checkAuth, isAuthenticated } = useRequireAuth();
   const [activeTab, setActiveTab] = useState<TopTab>('videos');
   const router = useRouter();
+
+  // Auth-Check beim Mounten - verwende React.useEffect
+  React.useEffect(() => {
+    if (!checkAuth('profile')) {
+      // User wird zum Login-Modal umgeleitet
+    }
+  }, []);
+
+  // Render nichts wenn nicht authentifiziert
+  if (!isAuthenticated) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Typography variant="body" style={{ marginTop: 16, color: Colors.text }}>
+          Authentifizierung wird geprüft...
+        </Typography>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

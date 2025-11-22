@@ -16,12 +16,14 @@ export const Colors = {
   background: '#FFFFFF',       // Weiß
   surface: '#FAFAFA',          // Heller Grau-Ton
   surfaceVariant: '#F5F5F5',   // Alternative Oberfläche
+  card: '#FFFFFF',             // Card background
   
   // Text-Farben
   text: '#212121',             // Haupt-Text (fast schwarz)
   textSecondary: '#757575',    // Sekundärer Text (grau)
   textDisabled: '#BDBDBD',     // Deaktivierter Text
   textOnPrimary: '#FFFFFF',    // Text auf lila Hintergrund
+  textInverse: '#FFFFFF',      // Inverse text color
   
   // Status-Farben
   success: '#4CAF50',          // Grün für Erfolg

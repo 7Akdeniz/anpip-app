@@ -72,6 +72,11 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
+        {/* Google Identity Services */}
+        <link rel="dns-prefetch" href="https://accounts.google.com" />
+        <link rel="preconnect" href="https://accounts.google.com" crossOrigin="anonymous" />
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
+        
         {/* Supabase CDN */}
         <link rel="dns-prefetch" href="https://fkmhucsjybyhjrgodwcx.supabase.co" />
         <link rel="preconnect" href="https://fkmhucsjybyhjrgodwcx.supabase.co" crossOrigin="anonymous" />

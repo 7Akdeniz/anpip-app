@@ -11,6 +11,8 @@ import { Colors, Spacing } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { usePathname } from 'expo-router';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { ActivityIndicator } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -108,10 +110,18 @@ const DUMMY_CHATS = [
 ];
 
 export default function MessagesScreen() {
+  const { checkAuth, isAuthenticated } = useRequireAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
   const [recipientSearch, setRecipientSearch] = useState('');
   const pathname = usePathname();
+
+  // Auth-Check beim Mounten
+  useEffect(() => {
+    if (!checkAuth('message')) {
+      // User wird zum Login-Modal umgeleitet
+    }
+  }, []);
 
   // Registriere Listener für neue Nachricht
   useEffect(() => {
@@ -124,6 +134,18 @@ export default function MessagesScreen() {
       newMessageListener = null;
     };
   }, []);
+
+  // Render nichts wenn nicht authentifiziert
+  if (!isAuthenticated) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Typography variant="body" style={{ marginTop: 16, color: Colors.text }}>
+          Authentifizierung wird geprüft...
+        </Typography>
+      </View>
+    );
+  }
 
   const filteredChats = DUMMY_CHATS.filter(chat => {
     if (searchQuery) {
@@ -141,28 +163,17 @@ export default function MessagesScreen() {
           <View style={styles.headerIcons}>
             <TouchableOpacity 
               style={styles.headerIconButton}
-              onPress={() => Alert.alert('Einstellungen', 'Einstellungen werden geöffnet...')}
+              onPress={() => Alert.alert('Suche', 'Suchfunktion wird geöffnet...')}
             >
-              <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="call-outline" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.headerIconButton}
+              onPress={() => Alert.alert('Videoanruf', 'Videoanruffunktion wird gestartet...')}
+            >
+              <Ionicons name="videocam-outline" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Suchleiste */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color="rgba(255,255,255,0.5)" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Chats durchsuchen..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
-            </TouchableOpacity>
-          )}
         </View>
       </BlurView>
 

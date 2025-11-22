@@ -11,30 +11,60 @@ import { Colors as ThemeColors } from '@/constants/Theme';
 import { usePathname, useRouter } from 'expo-router';
 import { Alert } from 'react-native';
 import { triggerNewMessage } from './messages';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 export default function TabLayout() {
   const pathname = usePathname();
   const router = useRouter();
   const isMessagesScreen = pathname === '/messages';
+  const { checkAuth } = useRequireAuth();
 
   // Handler für Tab-Presses auf Messages-Screen
   const handleTabPress = (routeName: string, event: any) => {
-    if (!isMessagesScreen) return; // Nur auf Messages-Screen aktiv
+    // Auth-Checks für geschützte Tabs
+    if (routeName === 'upload') {
+      // Upload-Tab immer schützen
+      if (!isMessagesScreen) {
+        event.preventDefault();
+        if (!checkAuth('upload')) {
+          return;
+        }
+      } else {
+        // Auf Messages-Screen: Neue Nachricht
+        event.preventDefault();
+        if (checkAuth('message')) {
+          triggerNewMessage();
+        }
+      }
+    } else if (routeName === 'messages') {
+      // Messages-Tab schützen
+      event.preventDefault();
+      if (checkAuth('message')) {
+        router.push('/messages');
+      }
+    } else if (routeName === 'profile' && !isMessagesScreen) {
+      // Profile-Tab schützen (aber nicht auf Messages-Screen wo es Videoanruf ist)
+      event.preventDefault();
+      if (checkAuth('profile')) {
+        router.push('/profile');
+      }
+    }
+
+    // Spezielle Funktionen auf Messages-Screen
+    if (!isMessagesScreen) return;
 
     if (routeName === 'explore') {
       // Anruf-Funktion
       event.preventDefault();
-      Alert.alert('Anruf', 'Anruffunktion wird gestartet...');
-    } else if (routeName === 'upload') {
-      // Neue Nachricht
-      if (isMessagesScreen) {
-        event.preventDefault();
-        triggerNewMessage();
+      if (checkAuth('message', 'Melde dich an, um Anrufe zu tätigen')) {
+        Alert.alert('Anruf', 'Anruffunktion wird gestartet...');
       }
     } else if (routeName === 'profile') {
       // Videoanruf-Funktion
       event.preventDefault();
-      Alert.alert('Videoanruf', 'Videoanruffunktion wird gestartet...');
+      if (checkAuth('message', 'Melde dich an, um Videoanrufe zu tätigen')) {
+        Alert.alert('Videoanruf', 'Videoanruffunktion wird gestartet...');
+      }
     }
   };
   
@@ -86,7 +116,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Explore - Entdecken / Anruf auf Messages-Screen */}
+      {/* Explore - Suche */}
       <Tabs.Screen
         name="explore"
         options={{
@@ -157,11 +187,11 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Profile - Profil / Videoanruf auf Messages-Screen */}
+      {/* Profile - Profil */}
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Menu',
+          title: 'Profile',
           tabBarIcon: ({ color, size }) => (
             <Ionicons 
               name="person-outline" 
@@ -190,6 +220,22 @@ export default function TabLayout() {
       {/* Two verstecken */}
       <Tabs.Screen
         name="two"
+        options={{
+          href: null, // Versteckt den Tab
+        }}
+      />
+
+      {/* Live verstecken */}
+      <Tabs.Screen
+        name="live"
+        options={{
+          href: null, // Versteckt den Tab
+        }}
+      />
+
+      {/* Settings verstecken */}
+      <Tabs.Screen
+        name="settings"
         options={{
           href: null, // Versteckt den Tab
         }}
