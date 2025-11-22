@@ -437,3 +437,4 @@ Privates Projekt - Alle Rechte vorbehalten.
 ---
 
 **Viel Erfolg mit Anpip! 🚀**
+# Force Vercel rebuild - Sat Nov 22 14:39:26 CET 2025
