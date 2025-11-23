@@ -95,34 +95,34 @@ export default function SettingsScreen() {
             icon="mail-outline"
             title="E-Mail ändern"
             subtitle={user?.email}
-            onPress={() => router.push('/settings/account/change-email')}
+            onPress={() => Alert.alert('Info', 'E-Mail-Änderung in Entwicklung')}
           />
           <SettingsItem
             icon="call-outline"
             title="Telefonnummer"
             subtitle={user?.phone || 'Nicht hinzugefügt'}
-            onPress={() => router.push('/settings/account/phone')}
+            onPress={() => Alert.alert('Info', 'Telefonnummer-Verwaltung in Entwicklung')}
           />
           <SettingsItem
             icon="lock-closed-outline"
             title="Passwort ändern"
-            onPress={() => router.push('/settings/account/change-password')}
+            onPress={() => router.push('/settings/account/change-password' as any)}
           />
           <SettingsItem
             icon="shield-checkmark-outline"
             title="Zwei-Faktor-Authentifizierung"
             subtitle={user?.two_factor_enabled ? 'Aktiviert' : 'Deaktiviert'}
-            onPress={() => router.push('/settings/account/two-factor')}
+            onPress={() => Alert.alert('Info', '2FA-Setup in Entwicklung')}
           />
           <SettingsItem
             icon="phone-portrait-outline"
             title="Aktive Geräte"
-            onPress={() => router.push('/settings/account/devices')}
+            onPress={() => Alert.alert('Info', 'Geräte-Verwaltung in Entwicklung')}
           />
           <SettingsItem
             icon="checkmark-circle-outline"
             title="Kontosicherheit prüfen"
-            onPress={() => router.push('/settings/account/security-check')}
+            onPress={() => Alert.alert('Info', 'Sicherheitscheck in Entwicklung')}
             isLast
           />
         </SettingsSection>
@@ -132,33 +132,33 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="time-outline"
             title="Login-Historie"
-            onPress={() => router.push('/settings/security/login-history')}
+            onPress={() => Alert.alert('Info', 'Login-Historie in Entwicklung')}
           />
           <SettingsItem
             icon="alert-circle-outline"
             title="Unbekannte Geräte"
-            onPress={() => router.push('/settings/security/unknown-devices')}
+            onPress={() => Alert.alert('Info', 'Geräte-Überwachung in Entwicklung')}
           />
           <SettingsItem
             icon="keypad-outline"
             title="App-Passcode"
-            onPress={() => router.push('/settings/security/app-lock')}
+            onPress={() => Alert.alert('Info', 'App-Passcode in Entwicklung')}
           />
           <SettingsItem
             icon="download-outline"
             title="Daten herunterladen"
             subtitle="DSGVO-Export"
-            onPress={() => router.push('/settings/security/export-data')}
+            onPress={() => Alert.alert('Info', 'DSGVO-Export in Entwicklung')}
           />
           <SettingsItem
             icon="pause-circle-outline"
             title="Konto deaktivieren"
-            onPress={() => router.push('/settings/security/deactivate')}
+            onPress={() => Alert.alert('Info', 'Konto-Deaktivierung in Entwicklung')}
           />
           <SettingsItem
             icon="trash-outline"
             title="Konto dauerhaft löschen"
-            onPress={() => router.push('/settings/security/delete-account')}
+            onPress={() => router.push('/settings/security/delete-account' as any)}
             isDanger
             isLast
           />
@@ -215,17 +215,17 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="search-outline"
             title="Wer darf mich finden?"
-            onPress={() => router.push('/settings/privacy/who-can-find')}
+            onPress={() => router.push('/settings/privacy' as any)}
           />
           <SettingsItem
             icon="person-add-outline"
             title="Wer darf mir folgen?"
-            onPress={() => router.push('/settings/privacy/who-can-follow')}
+            onPress={() => router.push('/settings/privacy' as any)}
           />
           <SettingsItem
             icon="play-circle-outline"
             title="Wer darf meine Videos sehen?"
-            onPress={() => router.push('/settings/privacy/who-can-see-videos')}
+            onPress={() => router.push('/settings/privacy' as any)}
           />
           <SettingsItem
             icon="ban-outline"
@@ -236,7 +236,7 @@ export default function SettingsScreen() {
             icon="eye-outline"
             title="Profilsichtbarkeit"
             subtitle="In Vorschlägen anzeigen"
-            onPress={() => router.push('/settings/privacy/visibility')}
+            onPress={() => router.push('/settings/privacy' as any)}
             isLast
           />
         </SettingsSection>
@@ -247,18 +247,18 @@ export default function SettingsScreen() {
             icon="language-outline"
             title="App-Sprache"
             subtitle="Deutsch"
-            onPress={() => router.push('/settings/language')}
+            onPress={() => Alert.alert('Info', 'Sprachauswahl in Entwicklung')}
           />
           <SettingsItem
             icon="globe-outline"
-            title="Region / Land"
+            title="Region"
             subtitle="Deutschland"
-            onPress={() => router.push('/settings/region')}
+            onPress={() => Alert.alert('Info', 'Regionsauswahl in Entwicklung')}
           />
           <SettingsItem
             icon="location-outline"
-            title="Automatische Erkennung"
-            onPress={() => router.push('/settings/auto-detect')}
+            title="Automatisch erkennen"
+            onPress={() => router.push('/settings/location' as any)}
             isLast
           />
         </SettingsSection>
@@ -281,18 +281,18 @@ export default function SettingsScreen() {
             icon="text-outline"
             title="Schriftgröße"
             subtitle="Normal"
-            onPress={() => router.push('/settings/appearance/font-size')}
+            onPress={() => Alert.alert('Info', 'Schriftgröße-Einstellung in Entwicklung')}
           />
           <SettingsItem
             icon="flash-outline"
             title="Animationen"
             subtitle="Normal"
-            onPress={() => router.push('/settings/appearance/animations')}
+            onPress={() => Alert.alert('Info', 'Animations-Einstellung in Entwicklung')}
           />
           <SettingsItem
             icon="accessibility-outline"
             title="Barrierefreiheit"
-            onPress={() => router.push('/settings/appearance/accessibility')}
+            onPress={() => Alert.alert('Info', 'Barrierefreiheit-Einstellungen in Entwicklung')}
             isLast
           />
         </SettingsSection>
@@ -302,18 +302,18 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="navigate-outline"
             title="Automatische Erkennung"
-            onPress={() => router.push('/settings/location/auto-detect')}
+            onPress={() => router.push('/settings/location' as any)}
           />
           <SettingsItem
             icon="location-outline"
             title="Standort wählen"
             subtitle="Deutschland, Berlin"
-            onPress={() => router.push('/settings/location/manual')}
+            onPress={() => router.push('/settings/location' as any)}
           />
           <SettingsItem
             icon="business-outline"
             title="Für Market vorschlagen"
-            onPress={() => router.push('/settings/location/market')}
+            onPress={() => router.push('/settings/location' as any)}
             isLast
           />
         </SettingsSection>
@@ -323,28 +323,28 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="play-outline"
             title="Autoplay"
-            onPress={() => router.push('/settings/media/autoplay')}
+            onPress={() => router.push('/settings/media' as any)}
           />
           <SettingsItem
             icon="wifi-outline"
             title="Autoplay nur im WLAN"
-            onPress={() => router.push('/settings/media/autoplay-wifi')}
+            onPress={() => router.push('/settings/media' as any)}
           />
           <SettingsItem
             icon="volume-high-outline"
             title="Standard-Sound"
-            onPress={() => router.push('/settings/media/sound')}
+            onPress={() => router.push('/settings/media' as any)}
           />
           <SettingsItem
             icon="chatbox-ellipses-outline"
             title="Untertitel anzeigen"
-            onPress={() => router.push('/settings/media/captions')}
+            onPress={() => router.push('/settings/media' as any)}
           />
           <SettingsItem
             icon="videocam-outline"
             title="Videoqualität"
             subtitle="Automatisch"
-            onPress={() => router.push('/settings/media/quality')}
+            onPress={() => router.push('/settings/media' as any)}
             isLast
           />
         </SettingsSection>
@@ -359,22 +359,22 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="book-outline"
             title="Tutorials"
-            onPress={() => router.push('/settings/support/tutorials')}
+            onPress={() => Alert.alert('Info', 'Tutorials in Entwicklung')}
           />
           <SettingsItem
             icon="flag-outline"
             title="Problem melden"
-            onPress={() => router.push('/settings/support/report')}
+            onPress={() => Alert.alert('Info', 'Problem-Meldung in Entwicklung')}
           />
           <SettingsItem
             icon="chatbubbles-outline"
             title="Feedback senden"
-            onPress={() => router.push('/settings/support/feedback')}
+            onPress={() => Alert.alert('Info', 'Feedback-System in Entwicklung')}
           />
           <SettingsItem
             icon="mail-outline"
             title="Support kontaktieren"
-            onPress={() => router.push('/settings/support/contact')}
+            onPress={() => Alert.alert('Support', 'E-Mail: support@anpip.com')}
             isLast
           />
         </SettingsSection>
@@ -384,27 +384,27 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="shield-outline"
             title="Datenschutz"
-            onPress={() => router.push('/settings/legal/privacy')}
+            onPress={() => Alert.alert('Info', 'Datenschutzerklärung in Entwicklung')}
           />
           <SettingsItem
             icon="document-text-outline"
             title="Nutzungsbedingungen"
-            onPress={() => router.push('/settings/legal/terms')}
+            onPress={() => Alert.alert('Info', 'Nutzungsbedingungen in Entwicklung')}
           />
           <SettingsItem
             icon="information-circle-outline"
             title="Impressum"
-            onPress={() => router.push('/settings/legal/imprint')}
+            onPress={() => Alert.alert('Info', 'Impressum in Entwicklung')}
           />
           <SettingsItem
             icon="people-outline"
             title="Community-Richtlinien"
-            onPress={() => router.push('/settings/legal/community')}
+            onPress={() => Alert.alert('Info', 'Community-Richtlinien in Entwicklung')}
           />
           <SettingsItem
             icon="shield-checkmark-outline"
             title="Sicherheit & Jugendschutz"
-            onPress={() => router.push('/settings/legal/safety')}
+            onPress={() => Alert.alert('Info', 'Jugendschutz-Informationen in Entwicklung')}
             isLast
           />
         </SettingsSection>
@@ -424,7 +424,7 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="receipt-outline"
             title="Rechnungsübersicht"
-            onPress={() => router.push('/settings/payments/invoices')}
+            onPress={() => Alert.alert('Info', 'Rechnungsübersicht in Entwicklung')}
             isLast
           />
         </SettingsSection>
