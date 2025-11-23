@@ -4,7 +4,7 @@
  * Optimized for: Core Web Vitals, Performance, SEO, Progressive Web App
  */
 
-const VERSION = '4.0.0-2025';
+const VERSION = '4.0.1-2025';
 const CACHE_PREFIX = 'anpip';
 const STATIC_CACHE = `${CACHE_PREFIX}-static-v${VERSION}`;
 const IMAGE_CACHE = `${CACHE_PREFIX}-images-v${VERSION}`;
@@ -131,7 +131,7 @@ async function cacheFirst(request, cacheName, maxItems) {
     console.log('[SW] Cache miss, fetching:', request.url);
     const response = await fetch(request);
     
-    if (response.ok) {
+    if (response && response.ok) {
       const cache = await caches.open(cacheName);
       
       // Cache-Size-Limit prüfen
@@ -139,7 +139,9 @@ async function cacheFirst(request, cacheName, maxItems) {
         await limitCacheSize(cacheName, maxItems);
       }
       
-      cache.put(request, response.clone());
+      // Klone Response für Cache (nur einmal!)
+      const responseClone = response.clone();
+      cache.put(request, responseClone);
     }
     
     return response;
@@ -162,15 +164,15 @@ async function networkFirst(request, cacheName, maxAge) {
       )
     ]);
     
-    if (response.ok) {
+    if (response && response.ok) {
       const cache = await caches.open(cacheName);
       
       // Timestamp hinzufügen für Age-Checking
-      const clonedResponse = response.clone();
-      const headers = new Headers(clonedResponse.headers);
+      const responseBlob = await response.clone().blob();
+      const headers = new Headers(response.headers);
       headers.set('sw-cache-timestamp', Date.now().toString());
       
-      const newResponse = new Response(await clonedResponse.blob(), {
+      const newResponse = new Response(responseBlob, {
         status: response.status,
         statusText: response.statusText,
         headers: headers
@@ -211,9 +213,10 @@ async function networkFirstWithOfflineFallback(request, cacheName) {
   try {
     const response = await fetch(request);
     
-    if (response.ok) {
+    if (response && response.ok) {
       const cache = await caches.open(cacheName);
-      cache.put(request, response.clone());
+      const responseClone = response.clone();
+      cache.put(request, responseClone);
     }
     
     return response;
@@ -393,16 +396,34 @@ self.addEventListener('message', (event) => {
 
 console.log(`[SW v${VERSION}] Ready!`);
 
-async function staleWhileRevalidate(request, cacheName) {
+async function staleWhileRevalidate(request, cacheName, maxItems) {
   const cached = await caches.match(request);
   
-  const fetchPromise = fetch(request).then(response => {
-    if (response.ok) {
-      caches.open(cacheName).then(cache => cache.put(request, response.clone()));
+  // Starte Netzwerk-Request im Hintergrund
+  const fetchPromise = fetch(request).then(async response => {
+    if (response && response.ok) {
+      try {
+        const cache = await caches.open(cacheName);
+        
+        // Cache-Size-Limit prüfen
+        if (maxItems) {
+          await limitCacheSize(cacheName, maxItems);
+        }
+        
+        // Klone Response für Cache (nur einmal!)
+        const responseClone = response.clone();
+        cache.put(request, responseClone);
+      } catch (error) {
+        console.error('[SW] Cache update failed:', error);
+      }
     }
     return response;
-  }).catch(() => cached);
+  }).catch(error => {
+    console.error('[SW] Network failed:', error);
+    return cached;
+  });
   
+  // Gebe gecachte Version sofort zurück, oder warte auf Netzwerk
   return cached || fetchPromise;
 }
 
