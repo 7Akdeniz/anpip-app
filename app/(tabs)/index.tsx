@@ -37,6 +37,7 @@ import { getLastGiftSender, getVideoGiftCount } from '@/lib/giftService';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { getPersonalizedFeed, trackVideoInteraction } from '@/lib/recommendation-engine-real';
 import { sendPushNotification } from '@/lib/notifications-engine';
+import { useAutoScroll, loadAutoScrollSetting } from '@/hooks/useAutoScroll';
 
 // Web Video Component
 const WebVideo = Platform.OS === 'web' ? require('react').createElement : null;
@@ -101,6 +102,7 @@ export default function FeedScreen() {
   const [currentUserId] = useState('temp-user-id');
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const flatListRef = useRef<FlatList>(null);
   const loadingMoreRef = useRef(false);
   
@@ -313,6 +315,9 @@ export default function FeedScreen() {
       staysActiveInBackground: false,
       shouldDuckAndroid: true,
     });
+    
+    // Lade Auto-Scroll-Einstellung
+    loadAutoScrollSetting().then(setAutoScrollEnabled);
     
     // Lade User-Daten (Likes, Follows, Saved Videos)
     loadUserData();
@@ -608,6 +613,34 @@ export default function FeedScreen() {
     waitForInteraction: false,
   }).current;
 
+  // ============================================================================
+  // AUTO-SCROLL INTEGRATION
+  // ============================================================================
+
+  const scrollToIndex = useCallback((index: number) => {
+    if (!flatListRef.current) return;
+
+    flatListRef.current.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: 0,
+    });
+  }, []);
+
+  const { onVideoEnd, onManualScroll, onVideoPause, onVideoPlay } = useAutoScroll({
+    enabled: autoScrollEnabled,
+    currentIndex,
+    videosLength: videos.length,
+    scrollToIndex,
+    onEndReached,
+    hasMore,
+  });
+
+  // Manuelle Scroll-Erkennung
+  const handleScroll = useCallback(() => {
+    onManualScroll();
+  }, [onManualScroll]);
+
   const snapToOffsets = useMemo(() => videos.map((_, index) => index * videoHeight), [videos.length, videoHeight]);
 
   const renderVideoItem = useCallback(({ item: video, index }: { item: VideoType; index: number }) => {
@@ -620,20 +653,30 @@ export default function FeedScreen() {
           if (playingVideo === video.id) {
             videoElement.pause();
             setPlayingVideo(null);
+            onVideoPause(); // Auto-Scroll pausieren
           } else {
             videoElement.play().catch(() => {
               // Autoplay blocked
             });
             setPlayingVideo(video.id);
+            onVideoPlay(); // Auto-Scroll erlauben
           }
         }
       } else {
         if (playingVideo === video.id) {
           setPlayingVideo(null);
+          onVideoPause(); // Auto-Scroll pausieren
         } else {
           setPlayingVideo(video.id);
+          onVideoPlay(); // Auto-Scroll erlauben
         }
       }
+    };
+
+    // Video-Ende Handler für Auto-Scroll
+    const handleVideoEnd = (duration: number) => {
+      console.log(`🎬 Video ${index} beendet (${duration}ms)`);
+      onVideoEnd({ videoIndex: index, duration });
     };
 
     return (
@@ -661,7 +704,7 @@ export default function FeedScreen() {
               position: 'absolute',
             }}
             autoPlay={playingVideo === video.id}
-            loop
+            loop={!autoScrollEnabled} // Loop nur wenn Auto-Scroll deaktiviert
             playsInline
             muted={false}
             controls={false}
@@ -673,6 +716,13 @@ export default function FeedScreen() {
                 });
               }
             }}
+            onEnded={(e: any) => {
+              // Auto-Scroll triggern bei Video-Ende
+              if (autoScrollEnabled && isActive) {
+                const duration = e.target.duration * 1000; // in ms
+                handleVideoEnd(duration);
+              }
+            }}
           />
         ) : (
           <ExpoVideo
@@ -680,10 +730,22 @@ export default function FeedScreen() {
             style={styles.videoPlayer}
             resizeMode={ResizeMode.COVER}
             shouldPlay={playingVideo === video.id}
-            isLooping
+            isLooping={!autoScrollEnabled} // Loop nur wenn Auto-Scroll deaktiviert
             useNativeControls={false}
             isMuted={false}
             volume={1.0}
+            onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
+              // Auto-Scroll bei Video-Ende
+              if (
+                autoScrollEnabled &&
+                isActive &&
+                status.isLoaded &&
+                status.didJustFinish &&
+                status.durationMillis
+              ) {
+                handleVideoEnd(status.durationMillis);
+              }
+            }}
           />
         )}
         
@@ -984,6 +1046,7 @@ export default function FeedScreen() {
             decelerationRate="fast"
             disableIntervalMomentum={true}
             scrollEventThrottle={16}
+            onScroll={handleScroll}
             onViewableItemsChanged={onViewableItemsChangedRef.current.onViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}
             onEndReached={onEndReached}

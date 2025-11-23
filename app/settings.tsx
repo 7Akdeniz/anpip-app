@@ -11,6 +11,7 @@ import {
   Alert,
   SafeAreaView,
   TouchableOpacity,
+  Switch,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import SettingsSection from '@/components/settings/SettingsSection';
 import SettingsItem from '@/components/settings/SettingsItem';
 import type { User } from '@/types/settings';
+import { loadAutoScrollSetting, saveAutoScrollSetting } from '@/hooks/useAutoScroll';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -25,9 +27,11 @@ export default function SettingsScreen() {
   const isDark = colorScheme === 'dark';
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
 
   useEffect(() => {
     loadUserData();
+    loadAutoScrollSetting().then(setAutoScrollEnabled);
   }, []);
 
   const loadUserData = async () => {
@@ -66,6 +70,17 @@ export default function SettingsScreen() {
           },
         },
       ]
+    );
+  };
+
+  const handleAutoScrollToggle = async (value: boolean) => {
+    setAutoScrollEnabled(value);
+    await saveAutoScrollSetting(value);
+    Alert.alert(
+      value ? 'Auto-Scroll aktiviert' : 'Auto-Scroll deaktiviert',
+      value 
+        ? 'Videos scrollen automatisch nach Ende zum nächsten Video weiter.'
+        : 'Videos werden nur manuell gewechselt.'
     );
   };
 
@@ -334,6 +349,14 @@ export default function SettingsScreen() {
 
         {/* 8. AUDIO & VIDEO */}
         <SettingsSection title="Audio & Video">
+          <SettingsItem
+            icon="play-skip-forward-outline"
+            title="Automatisches Weiter-Scrollen"
+            subtitle={autoScrollEnabled ? 'Nach Video-Ende zum nächsten' : 'Nur manuelles Scrollen'}
+            type="switch"
+            value={autoScrollEnabled}
+            onValueChange={handleAutoScrollToggle}
+          />
           <SettingsItem
             icon="play-outline"
             title="Autoplay"

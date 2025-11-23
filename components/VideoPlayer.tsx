@@ -32,6 +32,7 @@ interface VideoPlayerProps {
   loop?: boolean;             // Loop aktivieren
   onPlaybackStatusUpdate?: (status: AVPlaybackStatus) => void;
   onViewCountIncrement?: () => void; // Callback wenn Video zu X% gesehen wurde
+  onVideoEnd?: (duration: number) => void; // Callback wenn Video zu Ende ist (Auto-Scroll)
   aspectRatio?: '9:16' | '16:9' | '1:1'; // Default: 9:16
 }
 
@@ -51,6 +52,7 @@ export default function VideoPlayer({
   loop = true,
   onPlaybackStatusUpdate,
   onViewCountIncrement,
+  onVideoEnd,
   aspectRatio = '9:16',
 }: VideoPlayerProps) {
   
@@ -142,6 +144,18 @@ export default function VideoPlayer({
     ) {
       setHasIncrementedView(true);
       onViewCountIncrement?.();
+    }
+
+    // Video-Ende erkennen (für Auto-Scroll)
+    // Nur wenn Loop NICHT aktiviert ist
+    if (
+      !loop &&
+      status.durationMillis &&
+      status.positionMillis > 0 &&
+      status.didJustFinish
+    ) {
+      console.log('🎬 Video beendet - triggere Auto-Scroll');
+      onVideoEnd?.(status.durationMillis);
     }
 
     // Optional: Callback weitergeben
