@@ -392,12 +392,6 @@ self.addEventListener('message', (event) => {
 });
 
 console.log(`[SW v${VERSION}] Ready!`);
-    return response;
-  } catch (error) {
-    const cached = await caches.match(request);
-    return cached || new Response('Offline', { status: 503 });
-  }
-}
 
 async function staleWhileRevalidate(request, cacheName) {
   const cached = await caches.match(request);

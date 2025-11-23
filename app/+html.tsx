@@ -392,8 +392,6 @@ export default function Root({ children }: { children: React.ReactNode }) {
         " />
         
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
-        <meta httpEquiv="X-Frame-Options" content="SAMEORIGIN" />
-        <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
         <meta httpEquiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
         <meta httpEquiv="Permissions-Policy" content="camera=(self), microphone=(self), geolocation=(self)" />
 
