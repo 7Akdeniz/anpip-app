@@ -3,9 +3,6 @@
 # Kopiere public Assets in dist
 echo "📁 Kopiere Assets in dist..."
 
-# Generiere manifest.json
-node scripts/generate-manifest.js
-
 # Kopiere Icons in dist root
 if [ -d "public/icons" ]; then
   cp -r public/icons dist/
@@ -18,10 +15,10 @@ if [ -f "public/splash-screen.png" ]; then
   echo "✅ Splash-Screen kopiert nach dist/"
 fi
 
-# Kopiere manifest.json
-if [ -f "public/manifest.json" ]; then
-  cp public/manifest.json dist/
-  echo "✅ manifest.json kopiert nach dist/"
+# Kopiere manifest.webmanifest
+if [ -f "public/manifest.webmanifest" ]; then
+  cp public/manifest.webmanifest dist/
+  echo "✅ manifest.webmanifest kopiert nach dist/"
 fi
 
 # Liste kopierte Dateien
