@@ -149,17 +149,6 @@ export default function SettingsScreen() {
             title="Daten herunterladen"
             subtitle="DSGVO-Export"
             onPress={() => Alert.alert('Info', 'DSGVO-Export in Entwicklung')}
-          />
-          <SettingsItem
-            icon="pause-circle-outline"
-            title="Konto deaktivieren"
-            onPress={() => Alert.alert('Info', 'Konto-Deaktivierung in Entwicklung')}
-          />
-          <SettingsItem
-            icon="trash-outline"
-            title="Konto dauerhaft löschen"
-            onPress={() => router.push('/settings/security/delete-account' as any)}
-            isDanger
             isLast
           />
         </SettingsSection>
@@ -405,6 +394,18 @@ export default function SettingsScreen() {
             icon="shield-checkmark-outline"
             title="Sicherheit & Jugendschutz"
             onPress={() => Alert.alert('Info', 'Jugendschutz-Informationen in Entwicklung')}
+          />
+          <SettingsItem
+            icon="pause-circle-outline"
+            title="Konto deaktivieren"
+            onPress={() => Alert.alert('Info', 'Konto-Deaktivierung in Entwicklung')}
+            isDanger
+          />
+          <SettingsItem
+            icon="trash-outline"
+            title="Konto dauerhaft löschen"
+            onPress={() => router.push('/settings/security/delete-account' as any)}
+            isDanger
             isLast
           />
         </SettingsSection>
