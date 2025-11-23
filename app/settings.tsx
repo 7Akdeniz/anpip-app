@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Switch,
+  Platform,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -76,12 +77,20 @@ export default function SettingsScreen() {
   const handleAutoScrollToggle = async (value: boolean) => {
     setAutoScrollEnabled(value);
     await saveAutoScrollSetting(value);
-    Alert.alert(
-      value ? 'Auto-Scroll aktiviert' : 'Auto-Scroll deaktiviert',
-      value 
-        ? 'Videos scrollen automatisch nach Ende zum nächsten Video weiter.'
-        : 'Videos werden nur manuell gewechselt.'
-    );
+    
+    // Visuelles Feedback für Benutzer
+    if (Platform.OS === 'web') {
+      // Web: Dezentes Toast-Feedback
+      console.log(`✅ Auto-Scroll ${value ? 'aktiviert' : 'deaktiviert'}`);
+    } else {
+      // Native: Alert mit detaillierter Info
+      Alert.alert(
+        value ? '✅ Auto-Scroll aktiviert' : '⏸️ Auto-Scroll deaktiviert',
+        value 
+          ? 'Videos scrollen nach Ende automatisch zum nächsten Video weiter. Du kannst jederzeit manuell scrollen.'
+          : 'Videos werden nur noch manuell gewechselt. Du musst selbst zum nächsten Video scrollen.'
+      );
+    }
   };
 
   return (
@@ -352,7 +361,10 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="play-skip-forward-outline"
             title="Automatisches Weiter-Scrollen"
-            subtitle={autoScrollEnabled ? 'Nach Video-Ende zum nächsten' : 'Nur manuelles Scrollen'}
+            subtitle={autoScrollEnabled 
+              ? '✅ Aktiviert - Scrollt nach Video-Ende automatisch weiter' 
+              : '⏸️ Deaktiviert - Nur manuelles Scrollen'
+            }
             type="switch"
             value={autoScrollEnabled}
             onValueChange={handleAutoScrollToggle}

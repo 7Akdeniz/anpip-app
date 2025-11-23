@@ -719,8 +719,13 @@ export default function FeedScreen() {
             onEnded={(e: any) => {
               // Auto-Scroll triggern bei Video-Ende
               if (autoScrollEnabled && isActive) {
-                const duration = e.target.duration * 1000; // in ms
+                const duration = (e.target.duration || 0) * 1000; // in ms
+                console.log(`🎬 Web Video beendet: ${video.id}, Dauer: ${duration}ms`);
                 handleVideoEnd(duration);
+              } else if (!autoScrollEnabled) {
+                // Loop manuell, wenn Auto-Scroll deaktiviert
+                e.target.currentTime = 0;
+                e.target.play().catch(() => console.log('Loop replay blocked'));
               }
             }}
           />
@@ -743,6 +748,7 @@ export default function FeedScreen() {
                 status.didJustFinish &&
                 status.durationMillis
               ) {
+                console.log(`🎬 Native Video beendet: ${video.id}, Dauer: ${status.durationMillis}ms`);
                 handleVideoEnd(status.durationMillis);
               }
             }}

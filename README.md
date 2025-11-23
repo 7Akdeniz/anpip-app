@@ -8,6 +8,7 @@ Eine moderne TikTok-ähnliche App im Google Material Design Stil mit React Nativ
 - 🎨 **Google Material Design**: Sauberes, modernes UI mit lila (#9C27B0) als Hauptfarbe
 - 🌍 **50 Sprachen**: Vollständiger Sprach-Switcher
 - 🎥 **Video-Feed**: Vertikales Vollbild-Format (9:16)
+- 🔄 **Auto-Scroll**: Automatisches Weiter-Scrollen nach Video-Ende (TikTok-Style)
 - 🔍 **Explore**: Suche, Trends, Hashtags
 - 👤 **Profile**: User-Profile mit Stats
 - 📤 **Upload**: Video-Upload mit Titel, Beschreibung, Hashtags

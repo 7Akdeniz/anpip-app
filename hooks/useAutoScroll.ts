@@ -27,6 +27,9 @@ interface AutoScrollConfig {
   scrollToIndex: (index: number) => void; // Scroll-Funktion
   onEndReached?: () => void;           // Callback für Infinite Scroll
   hasMore?: boolean;                   // Weitere Videos verfügbar?
+  preloadNext?: boolean;               // Nächstes Video vorladen (Default: true)
+  minVideoDuration?: number;           // Min. Video-Dauer in ms (Default: 1000ms)
+  scrollDelay?: number;                // Verzögerung vor Scroll in ms (Default: 500ms)
 }
 
 interface VideoEndEvent {
@@ -54,6 +57,9 @@ export function useAutoScroll(config: AutoScrollConfig) {
     scrollToIndex,
     onEndReached,
     hasMore = true,
+    preloadNext = true,
+    minVideoDuration = MIN_VIDEO_DURATION_MS,
+    scrollDelay = AUTO_SCROLL_DELAY_MS,
   } = config;
 
   // Refs für Zustandsverwaltung
@@ -100,15 +106,15 @@ export function useAutoScroll(config: AutoScrollConfig) {
       }
       
       // Kein Auto-Scroll mehr (Feed-Ende erreicht)
-      console.log('⏹️ Auto-Scroll: Feed-Ende erreicht');
+      console.log('⏹️ Auto-Scroll: Feed-Ende erreicht - keine weiteren Videos');
       return;
     }
 
     // Zum nächsten Video scrollen
-    console.log(`▶️ Auto-Scroll: Video ${currentIndex} → ${nextIndex}`);
+    console.log(`▶️ Auto-Scroll: Scrolle von Video ${currentIndex} → ${nextIndex} (${videosLength} total)`);
     isAutoScrollingRef.current = true;
 
-    // Smooth Scroll mit Delay
+    // Smooth Scroll mit konfigurierbarem Delay
     setTimeout(() => {
       scrollToIndex(nextIndex);
       
@@ -116,7 +122,7 @@ export function useAutoScroll(config: AutoScrollConfig) {
       setTimeout(() => {
         isAutoScrollingRef.current = false;
       }, 300);
-    }, AUTO_SCROLL_DELAY_MS);
+    }, scrollDelay);
 
   }, [currentIndex, videosLength, scrollToIndex, shouldAutoScroll, hasMore, onEndReached]);
 
@@ -127,14 +133,14 @@ export function useAutoScroll(config: AutoScrollConfig) {
     if (!enabled) return;
 
     // Prüfe ob Video lang genug war (verhindert Auto-Scroll bei sehr kurzen/fehlerhaften Videos)
-    if (event && event.duration < MIN_VIDEO_DURATION_MS) {
-      console.log('⏭️ Auto-Scroll: Video zu kurz, übersprungen');
+    if (event && event.duration < minVideoDuration) {
+      console.log(`⏭️ Auto-Scroll: Video zu kurz (${event.duration}ms < ${minVideoDuration}ms), übersprungen`);
       return;
     }
 
-    console.log('✅ Video beendet - Auto-Scroll wird vorbereitet...');
+    console.log(`✅ Video beendet (${event?.duration || 0}ms) - Auto-Scroll wird vorbereitet...`);
     scrollToNext();
-  }, [enabled, scrollToNext]);
+  }, [enabled, scrollToNext, minVideoDuration]);
 
   /**
    * Registriert manuelles Scrollen (verhindert Auto-Scroll)

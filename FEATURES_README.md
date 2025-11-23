@@ -48,6 +48,7 @@ Alle geforderten Funktionen wurden **zu 100% implementiert**, ohne die UI-Strukt
 - ✅ Nie zwei Videos gleichzeitig sichtbar
 - ✅ View-Tracking
 - ✅ Performance-Optimierungen
+- ✅ **Auto-Scroll Feature** (Automatisches Weiter-Scrollen nach Video-Ende)
 
 ---
 
@@ -73,6 +74,8 @@ Alle geforderten Funktionen wurden **zu 100% implementiert**, ohne die UI-Strukt
 - ✅ `__tests__/features.test.ts` - Automatisierte Tests
 - ✅ `IMPLEMENTATION_COMPLETE_FEATURES.md` - Vollständige Doku
 - ✅ `deploy-features.sh` - Deployment-Script
+- ✅ `docs/AUTO_SCROLL_FEATURE.md` - Auto-Scroll Dokumentation
+- ✅ `scripts/test-auto-scroll.sh` - Auto-Scroll Test-Script
 
 ---
 
