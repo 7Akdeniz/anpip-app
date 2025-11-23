@@ -1,419 +1,463 @@
-/**
- * ⚙️ SETTINGS PAGE (im Profil)
- * 
- * Hier kann der User:
- * - Sprache ändern (50 Sprachen)
- * - Account-Einstellungen
- * - Notifications
- * - Privacy
- */
+// ============================================================================
+// ⚙️ HAUPTEINSTELLUNGEN - Anpip.com
+// ============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
-  Switch,
-  TextInput,
+  useColorScheme,
+  Alert,
+  SafeAreaView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useI18n } from '@/i18n/I18nContext';
-import { LANGUAGES, Language, searchLanguages } from '@/i18n/languages';
+import { Stack, useRouter } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+import SettingsSection from '@/components/settings/SettingsSection';
+import SettingsItem from '@/components/settings/SettingsItem';
+import type { User } from '@/types/settings';
 
-export default function SettingsPage() {
+export default function SettingsScreen() {
   const router = useRouter();
-  const { locale, setLocale, isAutoDetected } = useI18n();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showLanguageList, setShowLanguageList] = useState(false);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const currentLanguage = LANGUAGES.find(l => l.code === locale);
-  const filteredLanguages = searchQuery ? searchLanguages(searchQuery) : LANGUAGES;
+  useEffect(() => {
+    loadUserData();
+  }, []);
 
-  const handleSelectLanguage = (code: string) => {
-    setLocale(code);
-    setShowLanguageList(false);
-    setSearchQuery('');
+  const loadUserData = async () => {
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const { data } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+        
+        if (data) {
+          setUser(data);
+        }
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der Benutzerdaten:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Abmelden',
+      'Möchtest du dich wirklich abmelden?',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Abmelden',
+          style: 'destructive',
+          onPress: async () => {
+            await supabase.auth.signOut();
+            router.replace('/auth/login');
+          },
+        },
+      ]
+    );
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>⚙️ Einstellungen</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      {/* Sprach-Einstellung */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🌍 Sprache</Text>
-        
-        {/* Aktuelle Sprache */}
-        <TouchableOpacity
-          style={styles.settingItem}
-          onPress={() => setShowLanguageList(!showLanguageList)}
-        >
-          <View style={styles.settingLeft}>
-            <Text style={styles.flag}>{currentLanguage?.flag}</Text>
-            <View>
-              <Text style={styles.settingLabel}>
-                {currentLanguage?.name}
-              </Text>
-              {isAutoDetected && (
-                <Text style={styles.autoDetectedLabel}>
-                  🌍 Automatisch erkannt
-                </Text>
-              )}
-            </View>
-          </View>
-          <Ionicons
-            name={showLanguageList ? "chevron-up" : "chevron-down"}
-            size={20}
-            color="#888"
-          />
-        </TouchableOpacity>
-
-        {/* Sprachen-Liste (ausklappbar) */}
-        {showLanguageList && (
-          <View style={styles.languageListContainer}>
-            {/* Suchleiste */}
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={16} color="#888" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Sprache suchen..."
-                placeholderTextColor="#888"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={16} color="#888" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Liste */}
-            <ScrollView style={styles.languageList} nestedScrollEnabled>
-              {filteredLanguages.map((lang) => (
-                <TouchableOpacity
-                  key={lang.code}
-                  style={[
-                    styles.languageItem,
-                    lang.code === locale && styles.languageItemSelected,
-                  ]}
-                  onPress={() => handleSelectLanguage(lang.code)}
-                >
-                  <Text style={styles.languageFlag}>{lang.flag}</Text>
-                  <View style={styles.languageInfo}>
-                    <Text style={[
-                      styles.languageName,
-                      lang.code === locale && styles.languageNameSelected,
-                    ]}>
-                      {lang.name}
-                    </Text>
-                    <Text style={styles.languageNative}>{lang.nativeName}</Text>
-                  </View>
-                  {lang.code === locale && (
-                    <Ionicons name="checkmark-circle" size={20} color="#ff0000" />
-                  )}
-                </TouchableOpacity>
-              ))}
-
-              {filteredLanguages.length === 0 && (
-                <View style={styles.emptyState}>
-                  <Ionicons name="language-outline" size={48} color="#888" />
-                  <Text style={styles.emptyText}>Keine Sprache gefunden</Text>
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        )}
-
-        <Text style={styles.helpText}>
-          💡 Die Sprache wurde automatisch basierend auf deinem Standort erkannt.
-          Du kannst sie jederzeit hier ändern.
-        </Text>
-      </View>
-
-      {/* Weitere Einstellungen */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🔔 Benachrichtigungen</Text>
-        
-        <SettingToggle
-          label="Push-Benachrichtigungen"
-          icon="notifications"
-          value={true}
-          onValueChange={() => {}}
-        />
-        
-        <SettingToggle
-          label="Neue Follower"
-          icon="person-add"
-          value={true}
-          onValueChange={() => {}}
-        />
-        
-        <SettingToggle
-          label="Neue Kommentare"
-          icon="chatbubble"
-          value={true}
-          onValueChange={() => {}}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🔒 Privatsphäre</Text>
-        
-        <SettingToggle
-          label="Privates Profil"
-          icon="lock-closed"
-          value={false}
-          onValueChange={() => {}}
-        />
-        
-        <SettingToggle
-          label="Standort anzeigen"
-          icon="location"
-          value={true}
-          onValueChange={() => {}}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📱 App</Text>
-        
-        <SettingItem
-          label="Über Anpip"
-          icon="information-circle"
-          onPress={() => {}}
-        />
-        
-        <SettingItem
-          label="Hilfe & Support"
-          icon="help-circle"
-          onPress={() => {}}
-        />
-        
-        <SettingItem
-          label="Nutzungsbedingungen"
-          icon="document-text"
-          onPress={() => {}}
-        />
-        
-        <SettingItem
-          label="Datenschutz"
-          icon="shield-checkmark"
-          onPress={() => {}}
-        />
-      </View>
-
-      {/* Logout */}
-      <TouchableOpacity style={styles.logoutButton}>
-        <Ionicons name="log-out-outline" size={20} color="#ff0000" />
-        <Text style={styles.logoutText}>Abmelden</Text>
-      </TouchableOpacity>
-
-      <View style={{ height: 100 }} />
-    </ScrollView>
-  );
-}
-
-// Setting Toggle Component
-function SettingToggle({
-  label,
-  icon,
-  value,
-  onValueChange,
-}: {
-  label: string;
-  icon: any;
-  value: boolean;
-  onValueChange: (value: boolean) => void;
-}) {
-  return (
-    <View style={styles.settingItem}>
-      <View style={styles.settingLeft}>
-        <Ionicons name={icon} size={20} color="#888" />
-        <Text style={styles.settingLabel}>{label}</Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: '#333', true: '#ff0000' }}
-        thumbColor="#fff"
+    <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
+      <Stack.Screen
+        options={{
+          title: 'Einstellungen',
+          headerStyle: {
+            backgroundColor: isDark ? '#000000' : '#FFFFFF',
+          },
+          headerTintColor: isDark ? '#FFFFFF' : '#000000',
+        }}
       />
-    </View>
-  );
-}
+      
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 1. KONTO */}
+        <SettingsSection title="Konto" isFirst>
+          <SettingsItem
+            icon="person-outline"
+            title="Profil bearbeiten"
+            subtitle={user?.username || user?.email}
+            onPress={() => router.push('/settings/account/edit-profile')}
+          />
+          <SettingsItem
+            icon="mail-outline"
+            title="E-Mail ändern"
+            subtitle={user?.email}
+            onPress={() => Alert.alert('Info', 'E-Mail-Änderung in Entwicklung')}
+          />
+          <SettingsItem
+            icon="call-outline"
+            title="Telefonnummer"
+            subtitle={user?.phone || 'Nicht hinzugefügt'}
+            onPress={() => Alert.alert('Info', 'Telefonnummer-Verwaltung in Entwicklung')}
+          />
+          <SettingsItem
+            icon="lock-closed-outline"
+            title="Passwort ändern"
+            onPress={() => router.push('/settings/account/change-password' as any)}
+          />
+          <SettingsItem
+            icon="shield-checkmark-outline"
+            title="Zwei-Faktor-Authentifizierung"
+            subtitle={user?.two_factor_enabled ? 'Aktiviert' : 'Deaktiviert'}
+            onPress={() => Alert.alert('Info', '2FA-Setup in Entwicklung')}
+          />
+          <SettingsItem
+            icon="phone-portrait-outline"
+            title="Aktive Geräte"
+            onPress={() => Alert.alert('Info', 'Geräte-Verwaltung in Entwicklung')}
+          />
+          <SettingsItem
+            icon="checkmark-circle-outline"
+            title="Kontosicherheit prüfen"
+            onPress={() => Alert.alert('Info', 'Sicherheitscheck in Entwicklung')}
+            isLast
+          />
+        </SettingsSection>
 
-// Setting Item Component
-function SettingItem({
-  label,
-  icon,
-  onPress,
-}: {
-  label: string;
-  icon: any;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity style={styles.settingItem} onPress={onPress}>
-      <View style={styles.settingLeft}>
-        <Ionicons name={icon} size={20} color="#888" />
-        <Text style={styles.settingLabel}>{label}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={20} color="#888" />
-    </TouchableOpacity>
+        {/* 2. SICHERHEIT */}
+        <SettingsSection title="Sicherheit">
+          <SettingsItem
+            icon="time-outline"
+            title="Login-Historie"
+            onPress={() => Alert.alert('Info', 'Login-Historie in Entwicklung')}
+          />
+          <SettingsItem
+            icon="alert-circle-outline"
+            title="Unbekannte Geräte"
+            onPress={() => Alert.alert('Info', 'Geräte-Überwachung in Entwicklung')}
+          />
+          <SettingsItem
+            icon="keypad-outline"
+            title="App-Passcode"
+            onPress={() => Alert.alert('Info', 'App-Passcode in Entwicklung')}
+          />
+          <SettingsItem
+            icon="download-outline"
+            title="Daten herunterladen"
+            subtitle="DSGVO-Export"
+            onPress={() => Alert.alert('Info', 'DSGVO-Export in Entwicklung')}
+          />
+          <SettingsItem
+            icon="pause-circle-outline"
+            title="Konto deaktivieren"
+            onPress={() => Alert.alert('Info', 'Konto-Deaktivierung in Entwicklung')}
+          />
+          <SettingsItem
+            icon="trash-outline"
+            title="Konto dauerhaft löschen"
+            onPress={() => router.push('/settings/security/delete-account' as any)}
+            isDanger
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 3. BENACHRICHTIGUNGEN */}
+        <SettingsSection title="Benachrichtigungen">
+          <SettingsItem
+            icon="notifications-outline"
+            title="Push-Benachrichtigungen"
+            onPress={() => router.push('/settings/notifications')}
+          />
+          <SettingsItem
+            icon="chatbox-outline"
+            title="Kommentare"
+            onPress={() => router.push('/settings/notifications')}
+          />
+          <SettingsItem
+            icon="person-add-outline"
+            title="Neue Follower"
+            onPress={() => router.push('/settings/notifications')}
+          />
+          <SettingsItem
+            icon="heart-outline"
+            title="Likes"
+            onPress={() => router.push('/settings/notifications')}
+          />
+          <SettingsItem
+            icon="mail-outline"
+            title="Nachrichten"
+            onPress={() => router.push('/settings/notifications')}
+          />
+          <SettingsItem
+            icon="at-outline"
+            title="Erwähnungen & Antworten"
+            onPress={() => router.push('/settings/notifications')}
+          />
+          <SettingsItem
+            icon="layers-outline"
+            title="Benachrichtigungen gruppieren"
+            onPress={() => router.push('/settings/notifications')}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 4. PRIVATSPHÄRE */}
+        <SettingsSection title="Privatsphäre">
+          <SettingsItem
+            icon="eye-off-outline"
+            title="Privates Profil"
+            subtitle={user?.is_private ? 'Aktiviert' : 'Deaktiviert'}
+            onPress={() => router.push('/settings/privacy')}
+          />
+          <SettingsItem
+            icon="search-outline"
+            title="Wer darf mich finden?"
+            onPress={() => router.push('/settings/privacy' as any)}
+          />
+          <SettingsItem
+            icon="person-add-outline"
+            title="Wer darf mir folgen?"
+            onPress={() => router.push('/settings/privacy' as any)}
+          />
+          <SettingsItem
+            icon="play-circle-outline"
+            title="Wer darf meine Videos sehen?"
+            onPress={() => router.push('/settings/privacy' as any)}
+          />
+          <SettingsItem
+            icon="ban-outline"
+            title="Blockierte Nutzer"
+            onPress={() => router.push('/settings/privacy/blocked-users')}
+          />
+          <SettingsItem
+            icon="eye-outline"
+            title="Profilsichtbarkeit"
+            subtitle="In Vorschlägen anzeigen"
+            onPress={() => router.push('/settings/privacy' as any)}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 5. SPRACHE & REGION */}
+        <SettingsSection title="Sprache & Region">
+          <SettingsItem
+            icon="language-outline"
+            title="App-Sprache"
+            subtitle="Deutsch"
+            onPress={() => Alert.alert('Info', 'Sprachauswahl in Entwicklung')}
+          />
+          <SettingsItem
+            icon="globe-outline"
+            title="Region"
+            subtitle="Deutschland"
+            onPress={() => Alert.alert('Info', 'Regionsauswahl in Entwicklung')}
+          />
+          <SettingsItem
+            icon="location-outline"
+            title="Automatisch erkennen"
+            onPress={() => router.push('/settings/location' as any)}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 6. ERSCHEINUNGSBILD */}
+        <SettingsSection title="Erscheinungsbild">
+          <SettingsItem
+            icon="moon-outline"
+            title="Design"
+            subtitle={
+              colorScheme === 'dark'
+                ? 'Dark Mode'
+                : colorScheme === 'light'
+                ? 'Light Mode'
+                : 'System'
+            }
+            onPress={() => router.push('/settings/appearance/theme')}
+          />
+          <SettingsItem
+            icon="text-outline"
+            title="Schriftgröße"
+            subtitle="Normal"
+            onPress={() => Alert.alert('Info', 'Schriftgröße-Einstellung in Entwicklung')}
+          />
+          <SettingsItem
+            icon="flash-outline"
+            title="Animationen"
+            subtitle="Normal"
+            onPress={() => Alert.alert('Info', 'Animations-Einstellung in Entwicklung')}
+          />
+          <SettingsItem
+            icon="accessibility-outline"
+            title="Barrierefreiheit"
+            onPress={() => Alert.alert('Info', 'Barrierefreiheit-Einstellungen in Entwicklung')}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 7. STANDORT */}
+        <SettingsSection title="Standort">
+          <SettingsItem
+            icon="navigate-outline"
+            title="Automatische Erkennung"
+            onPress={() => router.push('/settings/location' as any)}
+          />
+          <SettingsItem
+            icon="location-outline"
+            title="Standort wählen"
+            subtitle="Deutschland, Berlin"
+            onPress={() => router.push('/settings/location' as any)}
+          />
+          <SettingsItem
+            icon="business-outline"
+            title="Für Market vorschlagen"
+            onPress={() => router.push('/settings/location' as any)}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 8. AUDIO & VIDEO */}
+        <SettingsSection title="Audio & Video">
+          <SettingsItem
+            icon="play-outline"
+            title="Autoplay"
+            onPress={() => router.push('/settings/media' as any)}
+          />
+          <SettingsItem
+            icon="wifi-outline"
+            title="Autoplay nur im WLAN"
+            onPress={() => router.push('/settings/media' as any)}
+          />
+          <SettingsItem
+            icon="volume-high-outline"
+            title="Standard-Sound"
+            onPress={() => router.push('/settings/media' as any)}
+          />
+          <SettingsItem
+            icon="chatbox-ellipses-outline"
+            title="Untertitel anzeigen"
+            onPress={() => router.push('/settings/media' as any)}
+          />
+          <SettingsItem
+            icon="videocam-outline"
+            title="Videoqualität"
+            subtitle="Automatisch"
+            onPress={() => router.push('/settings/media' as any)}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 9. FAQ & SUPPORT */}
+        <SettingsSection title="FAQ & Support">
+          <SettingsItem
+            icon="help-circle-outline"
+            title="Häufige Fragen"
+            onPress={() => router.push('/settings/support/faq')}
+          />
+          <SettingsItem
+            icon="book-outline"
+            title="Tutorials"
+            onPress={() => Alert.alert('Info', 'Tutorials in Entwicklung')}
+          />
+          <SettingsItem
+            icon="flag-outline"
+            title="Problem melden"
+            onPress={() => Alert.alert('Info', 'Problem-Meldung in Entwicklung')}
+          />
+          <SettingsItem
+            icon="chatbubbles-outline"
+            title="Feedback senden"
+            onPress={() => Alert.alert('Info', 'Feedback-System in Entwicklung')}
+          />
+          <SettingsItem
+            icon="mail-outline"
+            title="Support kontaktieren"
+            onPress={() => Alert.alert('Support', 'E-Mail: support@anpip.com')}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 10. RECHTLICHES */}
+        <SettingsSection title="Rechtliches">
+          <SettingsItem
+            icon="shield-outline"
+            title="Datenschutz"
+            onPress={() => Alert.alert('Info', 'Datenschutzerklärung in Entwicklung')}
+          />
+          <SettingsItem
+            icon="document-text-outline"
+            title="Nutzungsbedingungen"
+            onPress={() => Alert.alert('Info', 'Nutzungsbedingungen in Entwicklung')}
+          />
+          <SettingsItem
+            icon="information-circle-outline"
+            title="Impressum"
+            onPress={() => Alert.alert('Info', 'Impressum in Entwicklung')}
+          />
+          <SettingsItem
+            icon="people-outline"
+            title="Community-Richtlinien"
+            onPress={() => Alert.alert('Info', 'Community-Richtlinien in Entwicklung')}
+          />
+          <SettingsItem
+            icon="shield-checkmark-outline"
+            title="Sicherheit & Jugendschutz"
+            onPress={() => Alert.alert('Info', 'Jugendschutz-Informationen in Entwicklung')}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 11. PREMIUM & ZAHLUNGEN */}
+        <SettingsSection title="Premium & Zahlungen">
+          <SettingsItem
+            icon="card-outline"
+            title="Zahlungsmethoden"
+            onPress={() => router.push('/settings/payments/methods')}
+          />
+          <SettingsItem
+            icon="star-outline"
+            title="Abonnements verwalten"
+            onPress={() => router.push('/settings/payments/subscriptions')}
+          />
+          <SettingsItem
+            icon="receipt-outline"
+            title="Rechnungsübersicht"
+            onPress={() => Alert.alert('Info', 'Rechnungsübersicht in Entwicklung')}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* 12. ABMELDEN */}
+        <SettingsSection>
+          <SettingsItem
+            icon="log-out-outline"
+            title="Abmelden"
+            onPress={handleLogout}
+            isDanger
+            isLast
+          />
+        </SettingsSection>
+
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#F2F2F7',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#222',
+  containerDark: {
+    backgroundColor: '#000000',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  section: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#111',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 12,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#111',
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  scrollView: {
     flex: 1,
   },
-  settingLabel: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  flag: {
-    fontSize: 24,
-  },
-  autoDetectedLabel: {
-    color: '#888',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  helpText: {
-    color: '#888',
-    fontSize: 12,
-    marginTop: 8,
-    lineHeight: 18,
-  },
-  languageListContainer: {
-    backgroundColor: '#111',
-    borderRadius: 8,
-    marginTop: 8,
-    maxHeight: 400,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#222',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    margin: 8,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 14,
-  },
-  languageList: {
-    maxHeight: 300,
-  },
-  languageItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#222',
-  },
-  languageItemSelected: {
-    backgroundColor: '#1a1a1a',
-  },
-  languageFlag: {
-    fontSize: 24,
-  },
-  languageInfo: {
-    flex: 1,
-  },
-  languageName: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  languageNameSelected: {
-    color: '#ff0000',
-    fontWeight: 'bold',
-  },
-  languageNative: {
-    color: '#888',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  emptyText: {
-    color: '#888',
-    fontSize: 14,
-    marginTop: 8,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    margin: 16,
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ff0000',
-  },
-  logoutText: {
-    color: '#ff0000',
-    fontSize: 16,
-    fontWeight: 'bold',
+  bottomSpacer: {
+    height: 40,
   },
 });
