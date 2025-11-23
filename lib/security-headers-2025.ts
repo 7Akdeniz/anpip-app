@@ -49,7 +49,7 @@ export function generateSecurityHeaders(config: SecurityHeadersConfig = {}): Rec
     addDirective('style-src', csp.styleSrc || ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com']);
     addDirective('img-src', csp.imgSrc || ["'self'", 'data:', 'https:', 'blob:']);
     addDirective('font-src', csp.fontSrc || ["'self'", 'https://fonts.gstatic.com']);
-    addDirective('connect-src', csp.connectSrc || ["'self'", 'https://fkmhucsjybyhjrgodwcx.supabase.co', 'wss://*.supabase.co']);
+    addDirective('connect-src', csp.connectSrc || ["'self'", 'https://fkmhucsjybyhjrgodwcx.supabase.co', 'https://vlibyocpdguxpretjvnz.supabase.co', 'wss://*.supabase.co']);
     addDirective('media-src', csp.mediaSrc || ["'self'", 'https:', 'blob:', 'data:']);
     addDirective('frame-src', csp.frameSrc || ["'self'"]);
     addDirective('object-src', csp.objectSrc || ["'none'"]);

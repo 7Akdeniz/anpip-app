@@ -385,8 +385,8 @@ export default function Root({ children }: { children: React.ReactNode }) {
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
           img-src 'self' data: https: blob:;
           font-src 'self' data: https://fonts.gstatic.com;
-          connect-src 'self' https://fkmhucsjybyhjrgodwcx.supabase.co https://vlibyocpdguxpretjvnz.supabase.co wss://fkmhucsjybyhjrgodwcx.supabase.co https://accounts.google.com https://ipapi.co https://www.google-analytics.com;
-          media-src 'self' blob: https://fkmhucsjybyhjrgodwcx.supabase.co https://cloudflarestream.com;
+          connect-src 'self' https://fkmhucsjybyhjrgodwcx.supabase.co https://vlibyocpdguxpretjvnz.supabase.co wss://fkmhucsjybyhjrgodwcx.supabase.co wss://vlibyocpdguxpretjvnz.supabase.co https://accounts.google.com https://ipapi.co https://www.google-analytics.com;
+          media-src 'self' blob: https://fkmhucsjybyhjrgodwcx.supabase.co https://vlibyocpdguxpretjvnz.supabase.co https://cloudflarestream.com;
           frame-src 'self' https://accounts.google.com;
           worker-src 'self' blob:;
         " />
