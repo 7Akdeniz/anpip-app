@@ -762,6 +762,17 @@ export default function FeedScreen() {
             {video.shares_count || 0}
           </Typography>
         </TouchableOpacity>
+
+        {/* 🔥 NEU: Duet Button */}
+        <TouchableOpacity 
+          style={styles.sidebarButton}
+          onPress={() => router.push(`/duet/${video.id}` as any)}
+        >
+          <Ionicons name="copy-outline" size={28} color="#FFFFFF" />
+          <Typography variant="caption" style={styles.sidebarText}>
+            Duet
+          </Typography>
+        </TouchableOpacity>
         
         {/* Speichern Button */}
         <TouchableOpacity 
