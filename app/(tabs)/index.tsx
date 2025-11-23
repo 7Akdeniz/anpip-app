@@ -35,6 +35,8 @@ import {
 } from '@/lib/videoService';
 import { getLastGiftSender, getVideoGiftCount } from '@/lib/giftService';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { getPersonalizedFeed, trackVideoInteraction } from '@/lib/recommendation-engine-real';
+import { sendPushNotification } from '@/lib/notifications-engine';
 
 // Web Video Component
 const WebVideo = Platform.OS === 'web' ? require('react').createElement : null;
@@ -915,21 +917,46 @@ export default function FeedScreen() {
             </View>
             
             <Typography variant="h3" align="center" style={styles.emptyTitle}>
-              Noch keine Videos
+              {activeTab === 'market' && localOnly 
+                ? 'Keine Market-Videos in deiner Nähe'
+                : activeTab === 'market'
+                ? 'Noch keine Market-Videos'
+                : activeTab === 'following'
+                ? 'Folge Leuten, um Videos zu sehen'
+                : activeTab === 'live'
+                ? 'Aktuell keine Live-Streams'
+                : 'Noch keine Videos'}
             </Typography>
             
             <Typography variant="body" align="center" style={styles.emptySubtitle}>
-              Sei der Erste und teile dein Video!
+              {activeTab === 'market' && localOnly
+                ? 'Versuche es ohne lokalen Filter oder in einer anderen Stadt'
+                : activeTab === 'market'
+                ? 'Sei der Erste und verkaufe etwas über Video!'
+                : activeTab === 'following'
+                ? 'Entdecke Creator im Explore-Tab'
+                : 'Sei der Erste und teile dein Video!'}
             </Typography>
             
-            <TouchableOpacity 
-              style={styles.uploadButton}
-              onPress={() => router.push('/upload')}
-            >
-              <Typography variant="body" style={styles.uploadButtonText}>
-                + Video hochladen
-              </Typography>
-            </TouchableOpacity>
+            {activeTab === 'market' && localOnly ? (
+              <TouchableOpacity 
+                style={styles.uploadButton}
+                onPress={() => setLocalOnly(false)}
+              >
+                <Typography variant="body" style={styles.uploadButtonText}>
+                  🌍 Alle Standorte anzeigen
+                </Typography>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={styles.uploadButton}
+                onPress={() => router.push('/upload')}
+              >
+                <Typography variant="body" style={styles.uploadButtonText}>
+                  + Video hochladen
+                </Typography>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       ) : (

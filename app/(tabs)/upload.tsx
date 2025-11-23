@@ -20,6 +20,7 @@ import { BlurView } from 'expo-blur';
 import { LocationAutocomplete, Location } from '@/components/LocationAutocomplete';
 import { useLocation } from '@/contexts/LocationContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { autoModerateVideo } from '@/lib/moderation-engine';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -370,6 +371,25 @@ function UploadScreenProtected() {
       }
 
       console.log('✅ Video in Datenbank gespeichert:', videoData);
+
+      // 🔥 NEU: AI Content Moderation
+      setUploadProgress('Prüfe Content-Richtlinien...');
+      const moderationResult = await autoModerateVideo(
+        videoData.id,
+        videoData.video_url,
+        description
+      );
+
+      if (!moderationResult.approved) {
+        Alert.alert(
+          '⚠️ Video blockiert',
+          moderationResult.reason || 'Dein Video verstößt gegen unsere Community-Richtlinien.',
+          [{ text: 'OK' }]
+        );
+        // Video löschen
+        await supabase.from('videos').delete().eq('id', videoData.id);
+        return;
+      }
 
       setUploadProgress('Fertig!');
       

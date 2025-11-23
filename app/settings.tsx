@@ -10,8 +10,10 @@ import {
   useColorScheme,
   Alert,
   SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import SettingsSection from '@/components/settings/SettingsSection';
 import SettingsItem from '@/components/settings/SettingsItem';
@@ -76,6 +78,18 @@ export default function SettingsScreen() {
             backgroundColor: isDark ? '#000000' : '#FFFFFF',
           },
           headerTintColor: isDark ? '#FFFFFF' : '#000000',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ marginRight: 8 }}
+            >
+              <Ionicons
+                name="close"
+                size={28}
+                color={isDark ? '#FFFFFF' : '#000000'}
+              />
+            </TouchableOpacity>
+          ),
         }}
       />
       
@@ -95,13 +109,13 @@ export default function SettingsScreen() {
             icon="mail-outline"
             title="E-Mail ändern"
             subtitle={user?.email}
-            onPress={() => Alert.alert('Info', 'E-Mail-Änderung in Entwicklung')}
+            onPress={() => router.push('/settings/account/change-email' as any)}
           />
           <SettingsItem
             icon="call-outline"
             title="Telefonnummer"
             subtitle={user?.phone || 'Nicht hinzugefügt'}
-            onPress={() => Alert.alert('Info', 'Telefonnummer-Verwaltung in Entwicklung')}
+            onPress={() => router.push('/settings/account/phone' as any)}
           />
           <SettingsItem
             icon="lock-closed-outline"
@@ -112,17 +126,17 @@ export default function SettingsScreen() {
             icon="shield-checkmark-outline"
             title="Zwei-Faktor-Authentifizierung"
             subtitle={user?.two_factor_enabled ? 'Aktiviert' : 'Deaktiviert'}
-            onPress={() => Alert.alert('Info', '2FA-Setup in Entwicklung')}
+            onPress={() => router.push('/settings/security/two-factor' as any)}
           />
           <SettingsItem
             icon="phone-portrait-outline"
             title="Aktive Geräte"
-            onPress={() => Alert.alert('Info', 'Geräte-Verwaltung in Entwicklung')}
+            onPress={() => router.push('/settings/security/devices' as any)}
           />
           <SettingsItem
             icon="checkmark-circle-outline"
             title="Kontosicherheit prüfen"
-            onPress={() => Alert.alert('Info', 'Sicherheitscheck in Entwicklung')}
+            onPress={() => router.push('/settings/security/check' as any)}
             isLast
           />
         </SettingsSection>
@@ -132,28 +146,28 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="time-outline"
             title="Login-Historie"
-            onPress={() => Alert.alert('Info', 'Login-Historie in Entwicklung')}
+            onPress={() => router.push('/settings/security/login-history' as any)}
           />
           <SettingsItem
             icon="alert-circle-outline"
             title="Unbekannte Geräte"
-            onPress={() => Alert.alert('Info', 'Geräte-Überwachung in Entwicklung')}
+            onPress={() => router.push('/settings/security/devices' as any)}
           />
           <SettingsItem
             icon="keypad-outline"
             title="App-Passcode"
-            onPress={() => Alert.alert('Info', 'App-Passcode in Entwicklung')}
+            onPress={() => router.push('/settings/security/passcode' as any)}
           />
           <SettingsItem
             icon="download-outline"
             title="Daten herunterladen"
             subtitle="DSGVO-Export"
-            onPress={() => Alert.alert('Info', 'DSGVO-Export in Entwicklung')}
+            onPress={() => router.push('/settings/security/data-export' as any)}
           />
           <SettingsItem
             icon="pause-circle-outline"
             title="Konto deaktivieren"
-            onPress={() => Alert.alert('Info', 'Konto-Deaktivierung in Entwicklung')}
+            onPress={() => router.push('/settings/security/deactivate' as any)}
           />
           <SettingsItem
             icon="trash-outline"
@@ -247,13 +261,13 @@ export default function SettingsScreen() {
             icon="language-outline"
             title="App-Sprache"
             subtitle="Deutsch"
-            onPress={() => Alert.alert('Info', 'Sprachauswahl in Entwicklung')}
+            onPress={() => router.push('/settings/language' as any)}
           />
           <SettingsItem
             icon="globe-outline"
             title="Region"
             subtitle="Deutschland"
-            onPress={() => Alert.alert('Info', 'Regionsauswahl in Entwicklung')}
+            onPress={() => router.push('/settings/region' as any)}
           />
           <SettingsItem
             icon="location-outline"
@@ -281,18 +295,18 @@ export default function SettingsScreen() {
             icon="text-outline"
             title="Schriftgröße"
             subtitle="Normal"
-            onPress={() => Alert.alert('Info', 'Schriftgröße-Einstellung in Entwicklung')}
+            onPress={() => router.push('/settings/appearance/font-size' as any)}
           />
           <SettingsItem
             icon="flash-outline"
             title="Animationen"
             subtitle="Normal"
-            onPress={() => Alert.alert('Info', 'Animations-Einstellung in Entwicklung')}
+            onPress={() => router.push('/settings/appearance/animations' as any)}
           />
           <SettingsItem
             icon="accessibility-outline"
             title="Barrierefreiheit"
-            onPress={() => Alert.alert('Info', 'Barrierefreiheit-Einstellungen in Entwicklung')}
+            onPress={() => router.push('/settings/appearance/accessibility' as any)}
             isLast
           />
         </SettingsSection>
@@ -359,17 +373,17 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="book-outline"
             title="Tutorials"
-            onPress={() => Alert.alert('Info', 'Tutorials in Entwicklung')}
+            onPress={() => router.push('/settings/support/tutorials' as any)}
           />
           <SettingsItem
             icon="flag-outline"
             title="Problem melden"
-            onPress={() => Alert.alert('Info', 'Problem-Meldung in Entwicklung')}
+            onPress={() => router.push('/settings/support/report-problem' as any)}
           />
           <SettingsItem
             icon="chatbubbles-outline"
             title="Feedback senden"
-            onPress={() => Alert.alert('Info', 'Feedback-System in Entwicklung')}
+            onPress={() => router.push('/settings/support/feedback' as any)}
           />
           <SettingsItem
             icon="mail-outline"
@@ -384,27 +398,27 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="shield-outline"
             title="Datenschutz"
-            onPress={() => Alert.alert('Info', 'Datenschutzerklärung in Entwicklung')}
+            onPress={() => router.push('/settings/legal/privacy-policy' as any)}
           />
           <SettingsItem
             icon="document-text-outline"
             title="Nutzungsbedingungen"
-            onPress={() => Alert.alert('Info', 'Nutzungsbedingungen in Entwicklung')}
+            onPress={() => router.push('/settings/legal/terms-of-service' as any)}
           />
           <SettingsItem
             icon="information-circle-outline"
             title="Impressum"
-            onPress={() => Alert.alert('Info', 'Impressum in Entwicklung')}
+            onPress={() => router.push('/settings/legal/imprint' as any)}
           />
           <SettingsItem
             icon="people-outline"
             title="Community-Richtlinien"
-            onPress={() => Alert.alert('Info', 'Community-Richtlinien in Entwicklung')}
+            onPress={() => router.push('/settings/legal/community-guidelines' as any)}
           />
           <SettingsItem
             icon="shield-checkmark-outline"
             title="Sicherheit & Jugendschutz"
-            onPress={() => Alert.alert('Info', 'Jugendschutz-Informationen in Entwicklung')}
+            onPress={() => router.push('/settings/legal/community-guidelines' as any)}
             isLast
           />
         </SettingsSection>
@@ -424,7 +438,7 @@ export default function SettingsScreen() {
           <SettingsItem
             icon="receipt-outline"
             title="Rechnungsübersicht"
-            onPress={() => Alert.alert('Info', 'Rechnungsübersicht in Entwicklung')}
+            onPress={() => router.push('/settings/payments/invoices' as any)}
             isLast
           />
         </SettingsSection>

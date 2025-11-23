@@ -10,8 +10,10 @@ import {
   useColorScheme,
   Alert,
   SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import SettingsSection from '@/components/settings/SettingsSection';
 import SettingsItem from '@/components/settings/SettingsItem';
@@ -67,6 +69,15 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleBack = () => {
+    // Zurück zur vorherigen Seite oder zum Feed
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <Stack.Screen
@@ -76,6 +87,19 @@ export default function SettingsScreen() {
             backgroundColor: isDark ? '#000000' : '#FFFFFF',
           },
           headerTintColor: isDark ? '#FFFFFF' : '#000000',
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={handleBack}
+              style={styles.backButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name="arrow-back" 
+                size={28} 
+                color={isDark ? '#FFFFFF' : '#000000'} 
+              />
+            </TouchableOpacity>
+          ),
         }}
       />
       
@@ -457,6 +481,18 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  backButton: {
+    marginLeft: 16,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    marginLeft: 16,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bottomSpacer: {
     height: 40,

@@ -12,6 +12,7 @@ import { LocationDetector } from '@/components/LocationDetector';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AuthModalProvider } from '@/contexts/AuthModalContext';
 import { AuthModal } from '@/components/modals/AuthModal';
+import { useNotificationSetup } from '@/hooks/useNotificationSetup';
 
 // Performance & Analytics - nur bei Bedarf laden
 const initPerformance = async () => {
@@ -112,6 +113,9 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
+  // 🔥 NEU: Setup Push Notifications
+  useNotificationSetup();
+
   // FORCE DarkTheme for consistent video app experience (like TikTok, Instagram Reels)
   return (
     <AuthProvider>
