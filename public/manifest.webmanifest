@@ -1,11 +1,11 @@
 {
-  "id": "com.anpip.app",
-  "name": "Anpip - Social Video Platform",
+  "id": "com.anpip.app.2025",
+  "name": "Anpip - Social Video Platform 2025",
   "short_name": "Anpip",
-  "description": "Teile Videos, Momente und lokale Angebote weltweit. Moderne Social Media Plattform für 9:16 Videos.",
-  "start_url": "/?utm_source=pwa",
+  "description": "Moderne Social Video Plattform zum Teilen von Momenten, kurzen Videos und lokalen Angeboten. Entdecke Inhalte aus deiner Stadt und weltweit. Live-Streaming, Marketplace, Duett-Videos. KI-optimiert für 2025.",
+  "start_url": "/?utm_source=pwa&utm_medium=homescreen",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "fullscreen"],
   "background_color": "#000000",
   "theme_color": "#0ea5e9",
   "orientation": "portrait-primary",
@@ -13,6 +13,8 @@
   "dir": "ltr",
   "scope": "/",
   "prefer_related_applications": false,
+  "categories": ["social", "video", "entertainment", "marketplace", "lifestyle"],
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "icons": [
     {
       "src": "/assets/icons/icon-72x72.png",
@@ -121,7 +123,6 @@
       "label": "Desktop View"
     }
   ],
-  "categories": ["social", "entertainment", "photo", "video"],
   "shortcuts": [
     {
       "name": "Upload Video",

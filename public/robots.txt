@@ -1,33 +1,211 @@
+# ==================== ROBOTS.TXT 2025 - AI-OPTIMIZED ====================
+# Anpip.com - Social Video Platform
+# Optimiert für Google, Bing, AI-Search (ChatGPT, Perplexity, Claude, Gemini)
+
+# ==================== DEFAULT SEARCH ENGINES ====================
 User-agent: *
 Allow: /
-
-# Sitemaps
-Sitemap: https://anpip.com/sitemap.xml
-Sitemap: https://anpip.com/sitemap-de.xml
-Sitemap: https://anpip.com/sitemap-en.xml
-Sitemap: https://anpip.com/sitemap-videos.xml
-Sitemap: https://anpip.com/sitemap-market.xml
-
-# Crawl-delay für respektvolles Crawling
 Crawl-delay: 1
 
-# Blockiere unnötige Bots (aber erlaube AI-Crawler)
+# ==================== AI SEARCH BOTS 2025 ====================
+
+# OpenAI GPT Bot
 User-agent: GPTBot
 Allow: /
+Crawl-delay: 1
 
+# ChatGPT User Agent
 User-agent: ChatGPT-User
 Allow: /
+Crawl-delay: 1
 
+# Perplexity AI
 User-agent: PerplexityBot
 Allow: /
+Crawl-delay: 1
 
+# Claude (Anthropic)
 User-agent: Claude-Web
 Allow: /
+Crawl-delay: 1
 
 User-agent: anthropic-ai
 Allow: /
+Crawl-delay: 1
 
+# Google Bard/Gemini
+User-agent: Google-Extended
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bard
+Allow: /
+Crawl-delay: 1
+
+User-agent: Gemini
+Allow: /
+Crawl-delay: 1
+
+# Meta AI
+User-agent: FacebookBot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Crawl-delay: 1
+
+# ==================== MAJOR SEARCH ENGINES ====================
+
+# Google
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Googlebot-Image
+Allow: /
+Crawl-delay: 1
+
+User-agent: Googlebot-Video
+Allow: /
+Crawl-delay: 1
+
+# Bing
 User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: BingPreview
+Allow: /
+Crawl-delay: 1
+
+# Yandex
+User-agent: Yandex
+Allow: /
+Crawl-delay: 2
+
+# DuckDuckGo
+User-agent: DuckDuckBot
+Allow: /
+Crawl-delay: 1
+
+# Baidu
+User-agent: Baiduspider
+Allow: /
+Crawl-delay: 2
+
+# ==================== SOCIAL MEDIA CRAWLERS ====================
+
+# Twitter
+User-agent: Twitterbot
+Allow: /
+Crawl-delay: 1
+
+# Facebook
+User-agent: facebookexternalhit
+Allow: /
+Crawl-delay: 1
+
+# LinkedIn
+User-agent: LinkedInBot
+Allow: /
+Crawl-delay: 1
+
+# Pinterest
+User-agent: Pinterest
+Allow: /
+Crawl-delay: 1
+
+# Instagram
+User-agent: Instagram
+Allow: /
+Crawl-delay: 1
+
+# WhatsApp
+User-agent: WhatsApp
+Allow: /
+Crawl-delay: 1
+
+# Telegram
+User-agent: TelegramBot
+Allow: /
+Crawl-delay: 1
+
+# ==================== DISALLOWED BOTS ====================
+
+# Block aggressive scrapers
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+# Block spam bots
+User-agent: SiteBot
+Disallow: /
+
+User-agent: spam
+Disallow: /
+
+# ==================== SITEMAPS ====================
+
+# Main Sitemap
+Sitemap: https://anpip.com/sitemap.xml
+
+# Language-specific Sitemaps
+Sitemap: https://anpip.com/sitemap-de.xml
+Sitemap: https://anpip.com/sitemap-en.xml
+Sitemap: https://anpip.com/sitemap-es.xml
+Sitemap: https://anpip.com/sitemap-fr.xml
+
+# Content-specific Sitemaps
+Sitemap: https://anpip.com/sitemap-videos.xml
+Sitemap: https://anpip.com/sitemap-market.xml
+Sitemap: https://anpip.com/sitemap-users.xml
+Sitemap: https://anpip.com/sitemap-news.xml
+
+# Geo Sitemaps
+Sitemap: https://anpip.com/sitemap-geo-de.xml
+Sitemap: https://anpip.com/sitemap-geo-us.xml
+Sitemap: https://anpip.com/sitemap-geo-uk.xml
+
+# ==================== DISALLOWED PATHS ====================
+
+# API Endpoints
+Disallow: /api/
+Disallow: /_next/
+Disallow: /.expo/
+
+# Private Areas
+Disallow: /admin/
+Disallow: /private/
+
+# Duplicate Content
+Disallow: /*?*
+Disallow: /*&*
+
+# User-specific pages (to prevent duplicate content)
+Disallow: /*/settings
+Disallow: /*/preferences
+
+# ==================== HOST ====================
+Host: https://anpip.com
+
+# ==================== ADDITIONAL INFO ====================
+# Website: https://anpip.com
+# Contact: support@anpip.com
+# Updated: 2025-01-01
+# Version: 2.0
+
 Allow: /
 
 User-agent: Googlebot
