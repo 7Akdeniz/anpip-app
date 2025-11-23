@@ -74,11 +74,13 @@ export default function RootLayout() {
         });
 
         // Send to analytics endpoint
+        /*
         fetch('/api/analytics/vitals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(metrics),
         }).catch(console.error);
+        */
       });
 
       // Performance Optimizations

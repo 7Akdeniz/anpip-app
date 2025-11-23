@@ -126,7 +126,7 @@ function createInstallBanner(isIOS, isMobile) {
     </style>
     <div style="max-width: 640px; margin: 0 auto;">
       <div style="display: flex; align-items: flex-start; gap: 16px;">
-        <img src="/assets/icons/icon-192x192.png" 
+        <img src="/icons/icon-192x192.png" 
              style="width: 64px; height: 64px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); flex-shrink: 0;" 
              alt="Anpip">
         <div style="flex: 1; min-width: 0;">

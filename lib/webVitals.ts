@@ -252,7 +252,7 @@ function sendToAnalytics(name: string, value: number) {
       userAgent: navigator.userAgent,
     });
     
-    navigator.sendBeacon('/api/analytics/vitals', data);
+    // navigator.sendBeacon('/api/analytics/vitals', data);
   }
 }
 

@@ -22,8 +22,8 @@ const MAX_API_CACHE_AGE = 5 * 60 * 1000; // 5 Minuten
 const PRECACHE_ASSETS = [
   '/',
   '/manifest.webmanifest',
-  '/assets/icons/icon-192x192.png',
-  '/assets/icons/icon-512x512.png',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
   '/offline.html', // Offline-Fallback-Seite
 ];
 

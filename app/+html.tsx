@@ -150,7 +150,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
         
         {/* ==================== PRELOAD CRITICAL RESOURCES ==================== */}
         <link rel="preload" as="image" href="/assets/icons/icon-512x512.png" />
-        <link rel="preload" as="image" href="/assets/splash-screen.png" />
+        <link rel="preload" as="image" href="/splash-screen.png" />
         
         {/* ==================== SCHEMA.ORG JSON-LD - AI & SEARCH OPTIMIZATION 2025 ==================== */}
         
@@ -385,7 +385,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
           img-src 'self' data: https: blob:;
           font-src 'self' data: https://fonts.gstatic.com;
-          connect-src 'self' https://fkmhucsjybyhjrgodwcx.supabase.co wss://fkmhucsjybyhjrgodwcx.supabase.co https://accounts.google.com https://www.google-analytics.com;
+          connect-src 'self' https://fkmhucsjybyhjrgodwcx.supabase.co https://vlibyocpdguxpretjvnz.supabase.co wss://fkmhucsjybyhjrgodwcx.supabase.co https://accounts.google.com https://ipapi.co https://www.google-analytics.com;
           media-src 'self' blob: https://fkmhucsjybyhjrgodwcx.supabase.co https://cloudflarestream.com;
           frame-src 'self' https://accounts.google.com;
           worker-src 'self' blob:;
