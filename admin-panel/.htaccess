@@ -1,0 +1,21 @@
+# Deny access to this file
+<Files "config.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Prevent directory listing
+Options -Indexes
+
+# Protect sensitive files
+<FilesMatch "\.(sql|md|log)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Optional: IP Whitelist (auskommentiert - bei Bedarf aktivieren)
+# <Limit GET POST>
+#     Order deny,allow
+#     Deny from all
+#     Allow from 123.456.789.0  # Deine IP hier eintragen
+# </Limit>
