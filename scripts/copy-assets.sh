@@ -7,14 +7,18 @@ echo "📁 Kopiere Assets in dist..."
 node scripts/generate-manifest.js
 
 # Erstelle dist/assets Verzeichnis wenn nicht vorhanden
-mkdir -p dist/assets
+mkdir -p dist/assets/icons
 
-# Kopiere alle Assets
-if [ -d "public/assets" ]; then
-  cp -r public/assets/* dist/assets/
-  echo "✅ Assets kopiert"
-else
-  echo "⚠️  public/assets nicht gefunden"
+# Kopiere Icons direkt
+if [ -d "public/assets/icons" ]; then
+  cp public/assets/icons/*.png dist/assets/icons/
+  echo "✅ Icons kopiert nach dist/assets/icons/"
+fi
+
+# Kopiere Splash-Screen
+if [ -f "public/assets/splash-screen.png" ]; then
+  cp public/assets/splash-screen.png dist/assets/
+  echo "✅ Splash-Screen kopiert"
 fi
 
 # Kopiere manifest.json
@@ -24,5 +28,7 @@ if [ -f "public/manifest.json" ]; then
 fi
 
 # Liste kopierte Dateien
-echo "📋 Kopierte Assets:"
-ls -la dist/assets/ 2>/dev/null | head -20
+echo "📋 Assets in dist/assets/:"
+ls -la dist/assets/ 2>/dev/null | head -10
+echo "📋 Icons in dist/assets/icons/:"
+ls -la dist/assets/icons/ 2>/dev/null | head -15
