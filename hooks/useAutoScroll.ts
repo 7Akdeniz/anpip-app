@@ -177,15 +177,17 @@ export function useAutoScroll(config: AutoScrollConfig) {
   }, []);
 
   /**
-   * Cleanup bei Component Unmount
+   * Cleanup bei Component Unmount UND bei Index-Wechsel
    */
   useEffect(() => {
+    // ✅ BUGFIX: Clear timer wenn Index sich ändert (manuelles Scrollen)
     return () => {
       if (autoScrollTimerRef.current) {
         clearTimeout(autoScrollTimerRef.current);
+        autoScrollTimerRef.current = null;
       }
     };
-  }, []);
+  }, [currentIndex]); // Abhängigkeit hinzugefügt!
 
   // ============================================================================
   // RETURN API

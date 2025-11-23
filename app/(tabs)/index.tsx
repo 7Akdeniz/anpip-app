@@ -105,6 +105,8 @@ export default function FeedScreen() {
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const flatListRef = useRef<FlatList>(null);
   const loadingMoreRef = useRef(false);
+  const finishedVideosRef = useRef<Set<string>>(new Set()); // Trackt Videos die zu Ende gegangen sind
+  const videoRefsRef = useRef<Map<string, any>>(new Map()); // Refs für Video-Player
   
   // Modal States
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -584,15 +586,32 @@ export default function FeedScreen() {
       const newVideoId = visibleItem.item.id;
       setPlayingVideo(newVideoId);
       
+      // ✅ BUGFIX: Entferne "finished" Flag wenn zu Video zurückgekehrt wird
+      // Damit kann das Video erneut abgespielt werden
+      if (finishedVideosRef.current.has(newVideoId)) {
+        finishedVideosRef.current.delete(newVideoId);
+        console.log(`🔄 Video ${newVideoId} Status zurückgesetzt - kann erneut abgespielt werden`);
+        
+        // Setze Native Video auf Anfang zurück
+        const videoRef = videoRefsRef.current.get(newVideoId);
+        if (videoRef && Platform.OS !== 'web') {
+          videoRef.setPositionAsync(0).catch((err: any) => {
+            console.log('Position reset error:', err);
+          });
+        }
+      }
+      
       // Track view
       trackView(currentUserId, newVideoId).catch(console.error);
       
-      // Für Web: Video abspielen
+      // Für Web: Video abspielen und Position zurücksetzen
       if (Platform.OS === 'web') {
         setTimeout(() => {
           const videoElements = document.querySelectorAll('video');
           videoElements.forEach((video) => {
             if (video.src.includes(newVideoId)) {
+              // ✅ BUGFIX: Setze Video auf Anfang zurück
+              video.currentTime = 0;
               video.play().catch(() => {
                 // Autoplay blocked
               });
@@ -675,7 +694,14 @@ export default function FeedScreen() {
 
     // Video-Ende Handler für Auto-Scroll
     const handleVideoEnd = (duration: number) => {
+      // ✅ BUGFIX: Verhindere mehrfaches Triggern für dasselbe Video
+      if (finishedVideosRef.current.has(video.id)) {
+        console.log(`⏭️ Video ${video.id} bereits als beendet markiert - überspringe Auto-Scroll`);
+        return;
+      }
+      
       console.log(`🎬 Video ${index} beendet (${duration}ms)`);
+      finishedVideosRef.current.add(video.id);
       onVideoEnd({ videoIndex: index, duration });
     };
 
@@ -731,6 +757,12 @@ export default function FeedScreen() {
           />
         ) : (
           <ExpoVideo
+            ref={(ref) => {
+              // ✅ BUGFIX: Speichere Video-Ref für Position-Reset
+              if (ref) {
+                videoRefsRef.current.set(video.id, ref);
+              }
+            }}
             source={{ uri: video.video_url }}
             style={styles.videoPlayer}
             resizeMode={ResizeMode.COVER}
