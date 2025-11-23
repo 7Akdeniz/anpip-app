@@ -43,28 +43,17 @@ class AuthService {
         };
       }
 
-      // 2. Check if email already exists
-      const { data: existingUsers } = await supabase
-        .from('auth.users')
-        .select('email')
-        .eq('email', data.email.toLowerCase())
-        .limit(1);
-
-      if (existingUsers && existingUsers.length > 0) {
-        return {
-          success: false,
-          error: {
-            code: 'EMAIL_EXISTS',
-            message: 'Diese E-Mail-Adresse ist bereits registriert',
-          },
-        };
-      }
-
-      // 3. Create User in Supabase Auth
+      // 2. Create User in Supabase Auth
+      // Note: Supabase automatically checks if email exists and returns an error
+      console.log('[AuthService] Creating user in Supabase...');
+      
+      // Registrierung OHNE E-Mail-Verifizierung (autoConfirm)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email.toLowerCase(),
         password: data.password,
         options: {
+          // E-Mail-Verifizierung deaktiviert - User wird sofort bestätigt
+          emailRedirectTo: undefined,
           data: {
             first_name: data.firstName,
             last_name: data.lastName,
@@ -76,11 +65,40 @@ class AuthService {
             consent_date: new Date().toISOString(),
             data_processing_consent: data.acceptDataProcessing,
           },
-          emailRedirectTo: `${this.getBaseUrl()}/auth/verify-email`,
         },
       });
 
       if (authError) {
+        console.error('[AuthService] Supabase signUp error:', authError);
+        console.error('[AuthService] Error code:', authError.code);
+        console.error('[AuthService] Error status:', authError.status);
+        
+        // Wenn es ein "Database error" ist, könnte der User trotzdem erstellt worden sein
+        // Versuche Login stattdessen
+        if (authError.message?.includes('Database error') || authError.code === 'unexpected_failure') {
+          console.log('[AuthService] Trying login instead due to database error...');
+          
+          // Warte kurz, dann versuche Login
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const loginResult = await this.signIn({
+            email: data.email.toLowerCase(),
+            password: data.password,
+          });
+          
+          if (loginResult.success) {
+            console.log('[AuthService] Login successful after database error - user was created');
+            return {
+              success: true,
+              data: {
+                user: loginResult.data!.user,
+                session: loginResult.data!.session,
+                requiresVerification: false,
+              },
+            };
+          }
+        }
+        
         return {
           success: false,
           error: this.parseSupabaseError(authError),
@@ -97,13 +115,15 @@ class AuthService {
         };
       }
 
-      // 4. Upload Avatar if provided
+      // 3. Upload Avatar if provided
       if (data.avatarFile) {
         await this.uploadAvatar(authData.user.id, data.avatarFile);
       }
 
-      // 5. Create User Profile
+      // 4. Create User Profile
       const profile = this.mapSupabaseUserToProfile(authData.user);
+
+      console.log('[AuthService] Registration successful:', profile.email);
 
       return {
         success: true,

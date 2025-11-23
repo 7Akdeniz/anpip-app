@@ -7,12 +7,19 @@
 
 import { supabase } from '@/lib/supabase';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+// Environment Variables - verwende EXPO_PUBLIC_ für Client-Side
+const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_TOKEN_URI = process.env.GOOGLE_TOKEN_URI || 'https://oauth2.googleapis.com/token';
-const REDIRECT_URI = process.env.EXPO_PUBLIC_APP_URL 
-  ? `${process.env.EXPO_PUBLIC_APP_URL}/auth/google/callback`
-  : 'http://localhost:3000/auth/google/callback';
+const APP_URL = process.env.EXPO_PUBLIC_APP_URL || 'http://localhost:8081';
+
+// Redirect URI berechnen
+const getRedirectUri = () => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/auth/google/callback`;
+  }
+  return `${APP_URL}/auth/google/callback`;
+};
 
 interface GoogleTokenResponse {
   access_token: string;
@@ -48,6 +55,11 @@ export async function POST(request: Request) {
     // 1. AUTHORIZATION CODE GEGEN TOKEN TAUSCHEN
     // =====================================================
 
+    console.log('🔄 Tausche Authorization Code gegen Token...');
+    
+    const redirectUri = getRedirectUri();
+    console.log('   Redirect URI:', redirectUri);
+
     const tokenResponse = await fetch(GOOGLE_TOKEN_URI, {
       method: 'POST',
       headers: {
@@ -57,7 +69,7 @@ export async function POST(request: Request) {
         code,
         client_id: GOOGLE_CLIENT_ID || '',
         client_secret: GOOGLE_CLIENT_SECRET || '',
-        redirect_uri: REDIRECT_URI,
+        redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       }),
     });
@@ -66,12 +78,16 @@ export async function POST(request: Request) {
       const error = await tokenResponse.json();
       console.error('❌ Token exchange failed:', error);
       return new Response(
-        JSON.stringify({ error: 'Failed to exchange authorization code' }),
+        JSON.stringify({ 
+          error: 'Failed to exchange authorization code',
+          details: error,
+        }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     const tokens: GoogleTokenResponse = await tokenResponse.json();
+    console.log('✅ Token erfolgreich erhalten');
 
     // =====================================================
     // 2. USER-INFO VON GOOGLE ABRUFEN
@@ -95,12 +111,14 @@ export async function POST(request: Request) {
     }
 
     const googleUser: GoogleUserInfo = await userInfoResponse.json();
+    console.log('✅ User-Info erhalten:', googleUser.email);
 
     // =====================================================
     // 3. VALIDIERUNG
     // =====================================================
 
     if (!googleUser.verified_email) {
+      console.error('❌ Email not verified');
       return new Response(
         JSON.stringify({ error: 'Email not verified by Google' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -108,6 +126,7 @@ export async function POST(request: Request) {
     }
 
     if (!googleUser.email) {
+      console.error('❌ No email provided');
       return new Response(
         JSON.stringify({ error: 'No email provided by Google' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -115,61 +134,11 @@ export async function POST(request: Request) {
     }
 
     // =====================================================
-    // 4. USER IN DATENBANK SUCHEN ODER ERSTELLEN
+    // 4. SUPABASE SESSION ERSTELLEN
     // =====================================================
-
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id, email, google_id')
-      .eq('email', googleUser.email)
-      .single();
-
-    let userId: string;
-
-    if (existingUser) {
-      // User existiert bereits
-      userId = existingUser.id;
-
-      // Google-ID speichern falls noch nicht vorhanden
-      if (!existingUser.google_id) {
-        await supabase
-          .from('users')
-          .update({ 
-            google_id: googleUser.id,
-            avatar_url: googleUser.picture,
-          })
-          .eq('id', userId);
-      }
-    } else {
-      // Neuen User erstellen (Auto-Registrierung)
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert({
-          email: googleUser.email,
-          username: generateUsernameFromEmail(googleUser.email),
-          display_name: googleUser.name,
-          avatar_url: googleUser.picture,
-          google_id: googleUser.id,
-          email_verified: true,
-          created_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-
-      if (createError || !newUser) {
-        console.error('❌ Failed to create user:', createError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to create user account' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      userId = newUser.id;
-    }
-
-    // =====================================================
-    // 5. SUPABASE SESSION ERSTELLEN
-    // =====================================================
+    // Supabase Auth handhabt automatisch die User-Erstellung
+    
+    console.log('🔐 Erstelle Supabase Session...');
 
     const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
       provider: 'google',
@@ -179,20 +148,38 @@ export async function POST(request: Request) {
     if (authError || !authData.session) {
       console.error('❌ Session creation failed:', authError);
       return new Response(
-        JSON.stringify({ error: 'Failed to create session' }),
+        JSON.stringify({ 
+          error: 'Failed to create session',
+          details: authError,
+        }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
+    // Update User Metadata nach erfolgreicher Session-Erstellung
+    if (authData.user) {
+      await supabase.auth.updateUser({
+        data: {
+          full_name: googleUser.name,
+          first_name: googleUser.given_name,
+          last_name: googleUser.family_name,
+          avatar_url: googleUser.picture,
+          display_name: googleUser.name,
+        },
+      });
+    }
+
+    console.log('✅ Session erfolgreich erstellt');
+
     // =====================================================
-    // 6. ERFOLGREICHE ANTWORT
+    // 5. ERFOLGREICHE ANTWORT
     // =====================================================
 
     return new Response(
       JSON.stringify({
         success: true,
         user: {
-          id: userId,
+          id: authData.user.id,
           email: googleUser.email,
           name: googleUser.name,
           avatar: googleUser.picture,

@@ -160,20 +160,6 @@ export default function MessagesScreen() {
       <BlurView intensity={80} tint="dark" style={styles.header}>
         <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>Anpip</Text>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity 
-              style={styles.headerIconButton}
-              onPress={() => Alert.alert('Suche', 'Suchfunktion wird geöffnet...')}
-            >
-              <Ionicons name="call-outline" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.headerIconButton}
-              onPress={() => Alert.alert('Videoanruf', 'Videoanruffunktion wird gestartet...')}
-            >
-              <Ionicons name="videocam-outline" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
         </View>
       </BlurView>
 

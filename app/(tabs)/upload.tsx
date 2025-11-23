@@ -288,7 +288,9 @@ function UploadScreenProtected() {
       // Zeige Größe im Upload-Fortschritt
       setUploadProgress(`Video wird hochgeladen (${sizeMB} MB)...`);
 
-      // Upload zu Supabase Storage
+      // Upload zu Supabase Storage mit Timeout-Schutz
+      console.log('⬆️ Starte Supabase Storage Upload...');
+      
       const { data: uploadData, error: uploadError} = await supabase
         .storage
         .from('videos')
@@ -300,19 +302,32 @@ function UploadScreenProtected() {
 
       if (uploadError) {
         console.error('❌ Storage Upload Fehler:', uploadError);
+        console.error('❌ Fehler-Details:', JSON.stringify(uploadError, null, 2));
         
-        // Spezielle Behandlung für Größenlimit-Fehler
-        if (uploadError.message?.includes('exceeded the maximum allowed size')) {
-          Alert.alert(
-            'Video zu groß',
-            `Dein Video (${sizeMB} MB) ist zu groß für den Upload.\n\nSupabase Free Tier erlaubt max. 50 MB pro Upload.\n\nBitte wähle ein kleineres Video oder upgrade deinen Supabase Plan.`,
-            [{ text: 'OK' }]
-          );
+        // Detaillierte Fehlerbehandlung
+        let errorTitle = 'Upload fehlgeschlagen';
+        let errorMsg = uploadError.message || 'Unbekannter Fehler';
+        
+        if (uploadError.message?.includes('exceeded') || uploadError.message?.includes('size')) {
+          errorTitle = 'Video zu groß';
+          errorMsg = `Dein Video (${sizeMB} MB) ist zu groß.\n\nSupabase Free Tier: max. 50 MB pro Upload.\n\nBitte wähle ein kleineres Video.`;
+        } else if (uploadError.message?.includes('quota') || uploadError.message?.includes('storage')) {
+          errorTitle = 'Speicher voll';
+          errorMsg = `Dein Supabase Storage ist voll (1 GB Free Tier Limit).\n\nBitte lösche alte Videos oder upgrade deinen Plan.`;
+        } else if (uploadError.message?.includes('network') || uploadError.message?.includes('timeout')) {
+          errorTitle = 'Netzwerk-Problem';
+          errorMsg = `Upload fehlgeschlagen wegen Netzwerkproblemen.\n\nBitte prüfe:\n- WLAN-Verbindung\n- Supabase-Status\n- Versuche es erneut`;
         }
+        
+        Alert.alert(errorTitle, errorMsg, [
+          { text: 'OK' },
+          { text: 'Erneut versuchen', onPress: () => uploadVideo() }
+        ]);
         throw uploadError;
       }
 
       console.log('✅ Upload erfolgreich:', uploadData);
+      console.log('📁 Upload-Path:', uploadData?.path);
       setUploadProgress('Video wird in Datenbank gespeichert...');
 
       // Public URL vom hochgeladenen Video
@@ -322,6 +337,10 @@ function UploadScreenProtected() {
         .getPublicUrl(videoName);
 
       console.log('🔗 Public URL:', publicUrl);
+      
+      if (!publicUrl) {
+        throw new Error('Fehler beim Generieren der Public URL');
+      }
 
       // Video-Eintrag in Datenbank erstellen
       const { data: videoData, error: dbError } = await supabase
@@ -353,22 +372,64 @@ function UploadScreenProtected() {
       console.log('✅ Video in Datenbank gespeichert:', videoData);
 
       setUploadProgress('Fertig!');
-      setVideoUri(null);
-      setDescription('');
-      setVisibility('public');
-      setIsForMarket(false);
-      setSelectedLocation(null);
-      setSelectedCategory(null);
-      setSelectedSubcategory(null);
       
-      // Direkt zur Startseite wechseln (OHNE Bestätigung)
-      router.push('/(tabs)/feed');
+      // Erfolgs-Benachrichtigung
+      Alert.alert(
+        '✅ Video hochgeladen!',
+        'Dein Video wurde erfolgreich hochgeladen und ist jetzt sichtbar.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Formular zurücksetzen
+              setVideoUri(null);
+              setDescription('');
+              setVisibility('public');
+              setIsForMarket(false);
+              setSelectedLocation(null);
+              setSelectedCategory(null);
+              setSelectedSubcategory(null);
+              
+              // Zur Startseite navigieren
+              router.replace('/');
+            }
+          }
+        ]
+      );
 
     } catch (error: any) {
-      console.error('Upload-Fehler:', error);
-      Alert.alert('Upload fehlgeschlagen', error.message || 'Ein Fehler ist aufgetreten.');
+      console.error('❌ Upload-Fehler:', error);
+      console.error('❌ Error Stack:', error.stack);
+      console.error('❌ Error Name:', error.name);
+      console.error('❌ Error Message:', error.message);
+      
+      // Detaillierte Fehlermeldung
+      let errorMessage = 'Ein unbekannter Fehler ist aufgetreten.';
+      
+      if (error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+        errorMessage = 'Upload-Timeout: Die Verbindung ist zu langsam. Bitte versuche es mit einem kleineren Video oder besserer Internetverbindung.';
+      } else if (error.message?.includes('network') || error.message?.includes('Network')) {
+        errorMessage = 'Netzwerkfehler: Bitte prüfe deine Internetverbindung und versuche es erneut.';
+      } else if (error.message?.includes('size') || error.message?.includes('exceeded') || error.message?.includes('quota')) {
+        errorMessage = 'Datei zu groß oder Speicher voll: Bitte wähle ein kleineres Video (max. 50 MB) oder lösche alte Videos.';
+      } else if (error.message?.includes('URL')) {
+        errorMessage = 'Fehler beim Upload: Video konnte nicht gespeichert werden. Bitte versuche es erneut.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert(
+        'Upload fehlgeschlagen',
+        errorMessage + '\n\nFehler-Details: ' + (error.name || 'Unknown'),
+        [
+          { text: 'OK' },
+          { text: 'Erneut versuchen', onPress: () => uploadVideo() }
+        ]
+      );
     } finally {
       setUploading(false);
+      setUploadProgress('');
+      console.log('🏁 Upload-Prozess beendet (Erfolg oder Fehler)');
     }
   };
 

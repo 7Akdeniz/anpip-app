@@ -67,27 +67,28 @@ export function GoogleLoginButton({
    */
   const handleGoogleLogin = async () => {
     if (Platform.OS !== 'web') {
-      if (onError) {
-        onError('Google Login nur auf Web verfügbar');
-      }
+      const errorMsg = 'Google Login ist nur im Browser verfügbar';
+      console.warn('⚠️', errorMsg);
+      onError?.(errorMsg);
       return;
     }
 
     setIsLoading(true);
 
     try {
-      console.log('🔐 Google Login gestartet...');
+      console.log('🔐 Google Login wird gestartet...');
 
       // DIREKT-REDIRECT ZU GOOGLE (garantiert funktionierende Methode)
       const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+      
+      if (!clientId) {
+        throw new Error('Google Client ID nicht konfiguriert. Bitte .env Datei prüfen.');
+      }
+
       const authUri = 'https://accounts.google.com/o/oauth2/auth';
       const redirectUri = typeof window !== 'undefined' 
         ? `${window.location.origin}/auth/google/callback`
         : 'http://localhost:8081/auth/google/callback';
-
-      if (!clientId) {
-        throw new Error('EXPO_PUBLIC_GOOGLE_CLIENT_ID nicht konfiguriert');
-      }
 
       // State für Rückleitung speichern
       const state = encodeURIComponent(returnUrl);
@@ -101,9 +102,12 @@ export function GoogleLoginButton({
         `access_type=online`,
         `state=${state}`,
         `include_granted_scopes=true`,
+        `prompt=select_account`, // Zeige Account-Auswahl
       ].join('&');
 
-      console.log('🔗 Redirect zu Google:', googleAuthUrl);
+      console.log('🔗 Weiterleitung zu Google OAuth...');
+      console.log('   Redirect URI:', redirectUri);
+      console.log('   Return URL:', returnUrl);
 
       // DIREKT-WEITERLEITUNG ZU GOOGLE
       if (typeof window !== 'undefined') {
@@ -114,9 +118,7 @@ export function GoogleLoginButton({
       setIsLoading(false);
       const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
       console.error('❌ Google Login Error:', error);
-      if (onError) {
-        onError(errorMessage);
-      }
+      onError?.(errorMessage);
     }
   };
 

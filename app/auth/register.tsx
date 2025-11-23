@@ -155,33 +155,51 @@ export default function RegisterScreen() {
     setIsLoading(true);
     setError(null);
 
-    const result = await signUp({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: email.trim().toLowerCase(),
-      password,
-      country,
-      preferredLanguage: language,
-      companyName: companyName.trim() || undefined,
-      acceptTerms,
-      acceptPrivacy,
-      acceptDataProcessing,
-    });
+    console.log('📝 Starte Registrierung...');
 
-    setIsLoading(false);
+    try {
+      const result = await signUp({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        country,
+        preferredLanguage: language,
+        companyName: companyName.trim() || undefined,
+        acceptTerms,
+        acceptPrivacy,
+        acceptDataProcessing,
+      });
 
-    if (result.success) {
-      if (result.data?.requiresVerification) {
-        Alert.alert(
-          'Registrierung erfolgreich',
-          'Bitte überprüfe deine E-Mails und bestätige deine E-Mail-Adresse.',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)' as any) }]
-        );
+      setIsLoading(false);
+
+      if (result.success) {
+        console.log('✅ Registrierung erfolgreich');
+        if (result.data?.requiresVerification) {
+          Alert.alert(
+            'Registrierung erfolgreich! ✅',
+            'Bitte überprüfe deine E-Mails und bestätige deine E-Mail-Adresse.',
+            [{ text: 'OK', onPress: () => router.replace('/(tabs)' as any) }]
+          );
+        } else {
+          Alert.alert(
+            'Willkommen! 🎉',
+            'Dein Account wurde erfolgreich erstellt.',
+            [{ text: 'Los geht\'s', onPress: () => router.replace('/(tabs)' as any) }]
+          );
+        }
       } else {
-        router.replace('/(tabs)');
+        console.error('❌ Registrierung fehlgeschlagen:', result.error);
+        const errorMessage = result.error?.message || 'Registrierung fehlgeschlagen';
+        setError(errorMessage);
+        Alert.alert('Registrierung fehlgeschlagen', errorMessage);
       }
-    } else {
-      setError(result.error?.message || 'Registrierung fehlgeschlagen');
+    } catch (error) {
+      setIsLoading(false);
+      console.error('❌ Registrierung Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Ein unbekannter Fehler ist aufgetreten';
+      setError(errorMessage);
+      Alert.alert('Fehler', errorMessage);
     }
   };
 
@@ -315,33 +333,32 @@ export default function RegisterScreen() {
 
             {/* Form */}
             <View style={styles.form}>
-              {/* Name */}
-              <View style={styles.row}>
-                <View style={[styles.inputContainer, { flex: 1 }]}>
-                  <Text style={styles.label}>Vorname *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    placeholder="Max"
-                    placeholderTextColor={Colors.textSecondary}
-                    autoCapitalize="words"
-                    editable={!isLoading}
-                  />
-                </View>
+              {/* Vorname */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Vorname *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholder="Max"
+                  placeholderTextColor={Colors.textSecondary}
+                  autoCapitalize="words"
+                  editable={!isLoading}
+                />
+              </View>
 
-                <View style={[styles.inputContainer, { flex: 1 }]}>
-                  <Text style={styles.label}>Nachname *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={lastName}
-                    onChangeText={setLastName}
-                    placeholder="Mustermann"
-                    placeholderTextColor={Colors.textSecondary}
-                    autoCapitalize="words"
-                    editable={!isLoading}
-                  />
-                </View>
+              {/* Nachname */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Nachname *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholder="Mustermann"
+                  placeholderTextColor={Colors.textSecondary}
+                  autoCapitalize="words"
+                  editable={!isLoading}
+                />
               </View>
 
               {/* Email */}

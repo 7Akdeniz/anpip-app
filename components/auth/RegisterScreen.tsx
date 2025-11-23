@@ -31,14 +31,26 @@ interface RegisterScreenProps {
 
 export function RegisterScreen({ embedded, onSwitchToLogin }: RegisterScreenProps) {
   const { signUp, signInWithProvider } = useAuth();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleEmailRegister = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
       Alert.alert('Fehler', 'Bitte alle Felder ausfüllen');
+      return;
+    }
+
+    if (firstName.length < 2) {
+      Alert.alert('Fehler', 'Vorname muss mindestens 2 Zeichen lang sein');
+      return;
+    }
+
+    if (lastName.length < 2) {
+      Alert.alert('Fehler', 'Nachname muss mindestens 2 Zeichen lang sein');
       return;
     }
 
@@ -57,8 +69,8 @@ export function RegisterScreen({ embedded, onSwitchToLogin }: RegisterScreenProp
       const result = await signUp({
         email,
         password,
-        firstName: '',
-        lastName: '',
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         country: 'DE',
         preferredLanguage: 'de',
         acceptTerms: true,
@@ -68,11 +80,32 @@ export function RegisterScreen({ embedded, onSwitchToLogin }: RegisterScreenProp
       
       if (result.success) {
         Alert.alert(
-          'Registrierung erfolgreich',
-          'Bitte überprüfe deine E-Mail für die Bestätigung.'
+          'Registrierung erfolgreich! 🎉',
+          'Willkommen bei Anpip! Du kannst dich jetzt anmelden.',
+          [{ text: 'OK' }]
         );
+        // Wechsel zum Login-Tab
+        if (onSwitchToLogin) {
+          onSwitchToLogin();
+        }
       } else {
-        Alert.alert('Registrierung fehlgeschlagen', result.error?.message || 'Unbekannter Fehler');
+        console.error('Registrierung fehlgeschlagen:', result.error);
+        
+        // Spezifische Fehlermeldungen
+        let errorMessage = result.error?.message || 'Unbekannter Fehler';
+        
+        // Übersetze häufige Supabase-Fehler
+        if (errorMessage.includes('Database error')) {
+          errorMessage = 'Es gab ein Problem mit der Datenbank. Bitte versuche es später erneut oder kontaktiere den Support.';
+        } else if (errorMessage.includes('already registered') || errorMessage.includes('already exists')) {
+          errorMessage = 'Diese E-Mail-Adresse ist bereits registriert. Bitte melde dich an.';
+        } else if (errorMessage.includes('Invalid email')) {
+          errorMessage = 'Ungültige E-Mail-Adresse';
+        } else if (errorMessage.includes('Password')) {
+          errorMessage = 'Passwort erfüllt nicht die Anforderungen';
+        }
+        
+        Alert.alert('Registrierung fehlgeschlagen', errorMessage);
       }
     } catch (error: any) {
       Alert.alert('Registrierung fehlgeschlagen', error.message || 'Unbekannter Fehler');
@@ -82,6 +115,16 @@ export function RegisterScreen({ embedded, onSwitchToLogin }: RegisterScreenProp
   };
 
   const handleSocialLogin = async (provider: 'google' | 'apple' | 'facebook') => {
+    // Warnung: OAuth funktioniert nur im Web-Browser
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Nicht verfügbar in Expo Go',
+        `${provider.charAt(0).toUpperCase() + provider.slice(1)} Login ist nur im Web-Browser verfügbar.\n\nBitte öffne die App im Browser oder nutze E-Mail/Passwort Registrierung.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await signInWithProvider({ provider });
@@ -97,6 +140,36 @@ export function RegisterScreen({ embedded, onSwitchToLogin }: RegisterScreenProp
 
   return (
     <View style={styles.container}>
+      {/* Vorname Input */}
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Vorname</Text>
+        <TextInput
+          style={styles.input}
+          value={firstName}
+          onChangeText={setFirstName}
+          placeholder="Max"
+          placeholderTextColor="#999"
+          autoCapitalize="words"
+          autoCorrect={false}
+          editable={!loading}
+        />
+      </View>
+
+      {/* Nachname Input */}
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Nachname</Text>
+        <TextInput
+          style={styles.input}
+          value={lastName}
+          onChangeText={setLastName}
+          placeholder="Mustermann"
+          placeholderTextColor="#999"
+          autoCapitalize="words"
+          autoCorrect={false}
+          editable={!loading}
+        />
+      </View>
+
       {/* Email Input */}
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Email</Text>

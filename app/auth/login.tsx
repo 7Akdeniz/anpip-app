@@ -48,19 +48,33 @@ export default function LoginScreen() {
     setIsLoading(true);
     setError(null);
 
-    const result = await signIn({
-      email: email.trim(),
-      password,
-      rememberMe,
-    });
+    console.log('🔐 Starte Login...');
 
-    setIsLoading(false);
+    try {
+      const result = await signIn({
+        email: email.trim(),
+        password,
+        rememberMe,
+      });
 
-    if (result.success) {
-      // Navigation wird automatisch vom AuthContext gehandhabt
-      router.replace('/(tabs)');
-    } else {
-      setError(result.error?.message || 'Anmeldung fehlgeschlagen');
+      setIsLoading(false);
+
+      if (result.success) {
+        console.log('✅ Login erfolgreich');
+        // Navigation wird automatisch vom AuthContext gehandhabt
+        router.replace('/(tabs)');
+      } else {
+        console.error('❌ Login fehlgeschlagen:', result.error);
+        const errorMessage = result.error?.message || 'Anmeldung fehlgeschlagen';
+        setError(errorMessage);
+        Alert.alert('Anmeldung fehlgeschlagen', errorMessage);
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error('❌ Login Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Ein unbekannter Fehler ist aufgetreten';
+      setError(errorMessage);
+      Alert.alert('Fehler', errorMessage);
     }
   };
 

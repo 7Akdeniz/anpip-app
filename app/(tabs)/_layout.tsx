@@ -23,11 +23,11 @@ export default function TabLayout() {
   const handleTabPress = (routeName: string, event: any) => {
     // Auth-Checks für geschützte Tabs
     if (routeName === 'upload') {
-      // Upload-Tab immer schützen
       if (!isMessagesScreen) {
+        // Auf Startseite/Feed: Zur Upload-Seite navigieren
         event.preventDefault();
-        if (!checkAuth('upload')) {
-          return;
+        if (checkAuth('upload')) {
+          router.push('/upload');
         }
       } else {
         // Auf Messages-Screen: Neue Nachricht
@@ -116,14 +116,14 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Explore - Suche */}
+      {/* Explore - Suche / Anruf auf Messages-Screen */}
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Search',
+          title: isMessagesScreen ? 'Call' : 'Search',
           tabBarIcon: ({ color, size }) => (
             <Ionicons 
-              name="search-outline" 
+              name={isMessagesScreen ? "call-outline" : "search-outline"}
               size={size} 
               color={color} 
               style={{
@@ -187,14 +187,14 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Profile - Profil */}
+      {/* Profile - Profil / Videoanruf auf Messages-Screen */}
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: isMessagesScreen ? 'Video Call' : 'Profile',
           tabBarIcon: ({ color, size }) => (
             <Ionicons 
-              name="person-outline" 
+              name={isMessagesScreen ? "videocam-outline" : "person-outline"}
               size={size} 
               color={color} 
               style={{

@@ -21,7 +21,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius } from '@/constants/Theme';
 import { router } from 'expo-router';
 
-export default function ForgotPasswordScreen() {
+interface ForgotPasswordScreenProps {
+  embedded?: boolean;
+  onBack?: () => void;
+}
+
+export default function ForgotPasswordScreen({ embedded, onBack }: ForgotPasswordScreenProps = {}) {
   const { requestPasswordReset } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -70,7 +75,13 @@ export default function ForgotPasswordScreen() {
           </Text>
           <TouchableOpacity
             style={styles.backToLoginButton}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (onBack) {
+                onBack();
+              } else {
+                router.back();
+              }
+            }}
           >
             <Text style={styles.backToLoginText}>Zurück zum Login</Text>
           </TouchableOpacity>
@@ -90,7 +101,16 @@ export default function ForgotPasswordScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Back Button */}
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => {
+            if (onBack) {
+              onBack();
+            } else {
+              router.back();
+            }
+          }}
+        >
           <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </TouchableOpacity>
 

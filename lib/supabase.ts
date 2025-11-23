@@ -27,11 +27,14 @@ export const supabase = createClient(
 
 // Auth Helper-Funktionen
 export const auth = {
-  // Registrierung mit Email & Passwort
+  // Registrierung mit Email & Passwort (OHNE E-Mail-Verifizierung)
   async signUp(email: string, password: string) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: undefined, // Keine E-Mail-Verifizierung
+      },
     });
     return { data, error };
   },

@@ -21,15 +21,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { router } from 'expo-router';
 
 interface LoginScreenProps {
   /** Embedded mode für Modal-Ansicht */
   embedded?: boolean;
   /** Callback zum Wechsel zu Register */
   onSwitchToRegister?: () => void;
+  /** Callback für Passwort vergessen */
+  onForgotPassword?: () => void;
 }
 
-export function LoginScreen({ embedded, onSwitchToRegister }: LoginScreenProps) {
+export function LoginScreen({ embedded, onSwitchToRegister, onForgotPassword }: LoginScreenProps) {
   const { signIn, signInWithProvider } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,6 +59,16 @@ export function LoginScreen({ embedded, onSwitchToRegister }: LoginScreenProps) 
   };
 
   const handleSocialLogin = async (provider: 'google' | 'apple' | 'facebook') => {
+    // Warnung: OAuth funktioniert nur im Web-Browser
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Nicht verfügbar in Expo Go',
+        `${provider.charAt(0).toUpperCase() + provider.slice(1)} Login ist nur im Web-Browser verfügbar.\n\nBitte öffne die App im Browser (drücke 'w' im Terminal) oder nutze E-Mail/Passwort Login.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await signInWithProvider({ provider });
@@ -101,6 +114,19 @@ export function LoginScreen({ embedded, onSwitchToRegister }: LoginScreenProps) 
           autoCorrect={false}
           editable={!loading}
         />
+        {/* Passwort vergessen Link */}
+        <TouchableOpacity 
+          onPress={() => {
+            if (onForgotPassword) {
+              onForgotPassword();
+            } else {
+              router.push('/auth/forgot-password' as any);
+            }
+          }}
+          disabled={loading}
+        >
+          <Text style={styles.forgotPasswordText}>Passwort vergessen?</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Login Button */}
@@ -256,5 +282,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#007AFF',
     fontWeight: '600',
+  },
+  forgotPasswordText: {
+    fontSize: 13,
+    color: '#007AFF',
+    textAlign: 'right',
+    marginTop: 4,
   },
 });

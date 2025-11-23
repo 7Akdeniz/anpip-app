@@ -21,12 +21,13 @@ import { useAuthModal } from '@/contexts/AuthModalContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginScreen } from '../auth/LoginScreen';
 import { RegisterScreen } from '../auth/RegisterScreen';
+import ForgotPasswordScreen from '@/app/auth/forgot-password';
 
 export function AuthModal() {
   const { isVisible, config, closeAuthModal, handleAuthSuccess } = useAuthModal();
   const { state } = useAuth();
   const { isAuthenticated, user } = state;
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [activeTab, setActiveTab] = useState<'login' | 'register' | 'forgot-password'>('login');
 
   // Setze Initial-Tab basierend auf config
   useEffect(() => {
@@ -68,7 +69,7 @@ export function AuthModal() {
             <Ionicons name="close" size={28} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {activeTab === 'login' ? 'Anmelden' : 'Registrieren'}
+            {activeTab === 'login' ? 'Anmelden' : activeTab === 'register' ? 'Registrieren' : 'Passwort zurücksetzen'}
           </Text>
           <View style={{ width: 28 }} />
         </View>
@@ -81,7 +82,8 @@ export function AuthModal() {
           </View>
         )}
 
-        {/* Tab Switcher */}
+        {/* Tab Switcher - nur bei login/register */}
+        {activeTab !== 'forgot-password' && (
         <View style={styles.tabContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'login' && styles.activeTab]}
@@ -100,6 +102,7 @@ export function AuthModal() {
             </Text>
           </TouchableOpacity>
         </View>
+        )}
 
         {/* Content */}
         <ScrollView
@@ -108,9 +111,18 @@ export function AuthModal() {
           keyboardShouldPersistTaps="handled"
         >
           {activeTab === 'login' ? (
-            <LoginScreen embedded onSwitchToRegister={() => setActiveTab('register')} />
-          ) : (
+            <LoginScreen 
+              embedded 
+              onSwitchToRegister={() => setActiveTab('register')}
+              onForgotPassword={() => setActiveTab('forgot-password')}
+            />
+          ) : activeTab === 'register' ? (
             <RegisterScreen embedded onSwitchToLogin={() => setActiveTab('login')} />
+          ) : (
+            <ForgotPasswordScreen 
+              embedded
+              onBack={() => setActiveTab('login')}
+            />
           )}
         </ScrollView>
       </KeyboardAvoidingView>
