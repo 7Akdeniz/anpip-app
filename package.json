@@ -22,7 +22,8 @@
     "k8s:apply": "kubectl apply -f kubernetes/ -n anpip",
     "k8s:status": "kubectl get pods -n anpip",
     "k8s:logs": "kubectl logs -f deployment/video-worker -n anpip",
-    "generate:icons": "node generate-pwa-icons.js"
+    "generate:icons": "node generate-pwa-icons.js",
+    "generate:sitemaps": "npx ts-node scripts/generate-sitemaps.ts"
   },
   "jest": {
     "preset": "jest-expo"
