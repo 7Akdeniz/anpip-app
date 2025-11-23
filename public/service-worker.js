@@ -4,7 +4,7 @@
  * Optimized for: Core Web Vitals, Performance, SEO, Progressive Web App
  */
 
-const VERSION = '4.0.1-2025';
+const VERSION = '4.1.0-2025-fix';
 const CACHE_PREFIX = 'anpip';
 const STATIC_CACHE = `${CACHE_PREFIX}-static-v${VERSION}`;
 const IMAGE_CACHE = `${CACHE_PREFIX}-images-v${VERSION}`;
