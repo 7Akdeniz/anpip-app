@@ -93,6 +93,11 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleClose = () => {
+    // Navigiere zur Startseite (Video-Feed)
+    router.push('/(tabs)');
+  };
+
   return (
     <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
       <Stack.Screen
@@ -104,12 +109,13 @@ export default function SettingsScreen() {
           headerTintColor: isDark ? '#FFFFFF' : '#000000',
           headerRight: () => (
             <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginRight: 8 }}
+              onPress={handleClose}
+              style={styles.closeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons
                 name="close"
-                size={28}
+                size={24}
                 color={isDark ? '#FFFFFF' : '#000000'}
               />
             </TouchableOpacity>
@@ -505,6 +511,13 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  closeButton: {
+    marginRight: 16,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bottomSpacer: {
     height: 40,
