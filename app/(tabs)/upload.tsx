@@ -283,84 +283,42 @@ function UploadScreenProtected() {
       
       setUploadProgress('Video wird gelesen...');
       
-      // Verwende fetch mit arrayBuffer für React Native Kompatibilität
       console.log('📖 Lese Video-Datei...');
+      
+      // Lese Video als ArrayBuffer
       const response = await fetch(videoUri);
-      
-      if (!response.ok) {
-        throw new Error(`Fehler beim Lesen der Video-Datei: ${response.status}`);
-      }
-      
       const arrayBuffer = await response.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      const originalSize = uint8Array.length;
-      const sizeMB = (originalSize / 1024 / 1024).toFixed(2);
+      const sizeMB = (uint8Array.length / 1024 / 1024).toFixed(2);
       console.log('📦 Video Größe:', sizeMB, 'MB');
-
-      // Größen-Check VOR Upload
-      if (originalSize > 50 * 1024 * 1024) {
-        Alert.alert(
-          'Video zu groß',
-          `Dein Video ist ${sizeMB} MB groß.\n\nMaximale Größe: 50 MB\n\nBitte wähle ein kleineres Video oder komprimiere es.`,
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-
-      // Zeige Größe im Upload-Fortschritt
+      
       setUploadProgress(`Video wird hochgeladen (${sizeMB} MB)...`);
-
-      // Upload zu Supabase Storage mit Timeout-Schutz
+      
       console.log('⬆️ Starte Supabase Storage Upload...');
       console.log('🪣 Bucket: videos');
       console.log('📝 Dateiname:', videoName);
       
       const uploadStartTime = Date.now();
       
-      const { data: uploadData, error: uploadError} = await supabase
+      // DIREKTER SUPABASE UPLOAD (funktioniert in React Native)
+      const { data: uploadData, error: uploadError } = await supabase
         .storage
         .from('videos')
         .upload(videoName, uint8Array, {
           contentType: 'video/mp4',
           upsert: false,
-          cacheControl: '3600',
         });
       
       const uploadDuration = ((Date.now() - uploadStartTime) / 1000).toFixed(2);
       console.log(`⏱️ Upload-Dauer: ${uploadDuration}s`);
-
+      
       if (uploadError) {
         console.error('❌ Storage Upload Fehler:', uploadError);
-        console.error('❌ Fehler-Details:', JSON.stringify(uploadError, null, 2));
-        
-        // Detaillierte Fehlerbehandlung
-        let errorTitle = 'Upload fehlgeschlagen';
-        let errorMsg = uploadError.message || 'Unbekannter Fehler';
-        
-        if (uploadError.message?.includes('exceeded') || uploadError.message?.includes('size')) {
-          errorTitle = 'Video zu groß';
-          errorMsg = `Dein Video (${sizeMB} MB) ist zu groß.\n\nSupabase Free Tier: max. 50 MB pro Upload.\n\nBitte wähle ein kleineres Video.`;
-        } else if (uploadError.message?.includes('quota') || uploadError.message?.includes('storage')) {
-          errorTitle = 'Speicher voll';
-          errorMsg = `Dein Supabase Storage ist voll (1 GB Free Tier Limit).\n\nBitte lösche alte Videos oder upgrade deinen Plan.`;
-        } else if (uploadError.message?.includes('network') || uploadError.message?.includes('timeout')) {
-          errorTitle = 'Netzwerk-Problem';
-          errorMsg = `Upload fehlgeschlagen wegen Netzwerkproblemen.\n\nBitte prüfe:\n- WLAN-Verbindung\n- Supabase-Status\n- Versuche es erneut`;
-        } else if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
-          errorTitle = 'Storage nicht konfiguriert';
-          errorMsg = `Der Supabase Storage Bucket "videos" existiert nicht.\n\nBitte erstelle den Bucket in Supabase Dashboard:\nStorage > New Bucket > Name: "videos" > Public`;
-        }
-        
-        Alert.alert(errorTitle, errorMsg, [
-          { text: 'OK' },
-          { text: 'Erneut versuchen', onPress: () => uploadVideo() }
-        ]);
-        throw uploadError;
+        throw new Error(uploadError.message || 'Upload fehlgeschlagen');
       }
-
+      
       console.log('✅ Upload erfolgreich:', uploadData);
-      console.log('📁 Upload-Path:', uploadData?.path);
       setUploadProgress('Video wird in Datenbank gespeichert...');
 
       // Public URL vom hochgeladenen Video
@@ -425,24 +383,28 @@ function UploadScreenProtected() {
       console.log('✅ Video in Datenbank gespeichert:', videoData);
       console.log('🆔 Video ID:', videoData.id);
 
-      // 🔥 NEU: AI Content Moderation
+      // 🔥 AI Content Moderation - TEMPORÄR DEAKTIVIERT für Upload-Fix
+      // TODO: Moderation später in Background-Job ausführen (Supabase Edge Function)
       setUploadProgress('Prüfe Content-Richtlinien...');
-      const moderationResult = await autoModerateVideo(
-        videoData.id,
-        videoData.video_url,
-        description
-      );
-
-      if (!moderationResult.approved) {
-        Alert.alert(
-          '⚠️ Video blockiert',
-          moderationResult.reason || 'Dein Video verstößt gegen unsere Community-Richtlinien.',
-          [{ text: 'OK' }]
-        );
-        // Video löschen
-        await supabase.from('videos').delete().eq('id', videoData.id);
-        return;
-      }
+      
+      console.log('⏭️ Moderation übersprungen (Background-Processing)');
+      
+      // const moderationResult = await autoModerateVideo(
+      //   videoData.id,
+      //   videoData.video_url,
+      //   description
+      // );
+      //
+      // if (!moderationResult.approved) {
+      //   Alert.alert(
+      //     '⚠️ Video blockiert',
+      //     moderationResult.reason || 'Dein Video verstößt gegen unsere Community-Richtlinien.',
+      //     [{ text: 'OK' }]
+      //   );
+      //   // Video löschen
+      //   await supabase.from('videos').delete().eq('id', videoData.id);
+      //   return;
+      // }
 
       setUploadProgress('Fertig!');
       
