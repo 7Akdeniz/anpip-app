@@ -1,0 +1,65 @@
+{
+  "name": "pixabay-music-integration",
+  "description": "Complete Pixabay Music API integration for Anpip.com",
+  "version": "1.0.0",
+  "dependencies": {
+    "@react-native-community/slider": "^4.5.0",
+    "@react-native-async-storage/async-storage": "^1.21.0",
+    "expo-av": "~13.10.4"
+  },
+  "installation": {
+    "command": "npx expo install @react-native-community/slider @react-native-async-storage/async-storage",
+    "note": "expo-av is already installed in most Expo projects"
+  },
+  "supabase": {
+    "edge_functions": [
+      "pixabay-music"
+    ],
+    "migrations": [
+      "20241124_pixabay_music_favorites.sql"
+    ],
+    "secrets": {
+      "PIXABAY_API_KEY": "Get from https://pixabay.com/api/docs/"
+    }
+  },
+  "files_created": [
+    "supabase/functions/pixabay-music/index.ts",
+    "supabase/migrations/20241124_pixabay_music_favorites.sql",
+    "types/pixabay-music.ts",
+    "lib/music-service.ts",
+    "lib/music-cache.ts",
+    "contexts/MusicContext.tsx",
+    "components/music/MusicBrowser.tsx",
+    "components/music/MusicPlayer.tsx",
+    "components/music/MusicSelector.tsx",
+    "components/music/index.ts",
+    "docs/PIXABAY_MUSIC_INTEGRATION.md",
+    "docs/PIXABAY_MUSIC_QUICK_START.md",
+    "scripts/deploy-music-api.sh",
+    "EXAMPLES/MusicTestScreen.tsx",
+    "EXAMPLES/VideoEditorWithMusicExample.tsx",
+    "EXAMPLES/VideoUploaderWithMusicExample.tsx",
+    "app/music-browser.tsx",
+    "PIXABAY_MUSIC_README.md"
+  ],
+  "setup_steps": [
+    "1. Get API key from https://pixabay.com/api/docs/",
+    "2. Run: chmod +x scripts/deploy-music-api.sh",
+    "3. Run: ./scripts/deploy-music-api.sh",
+    "4. Add MusicProvider to app/_layout.tsx",
+    "5. Test with /music-browser route"
+  ],
+  "features": [
+    "200,000+ free music tracks",
+    "Search by genre, mood, artist, BPM, duration",
+    "Full music player with controls",
+    "Favorites system",
+    "Video editor integration",
+    "Multi-layer caching",
+    "Rate limiting",
+    "Cross-platform (iOS, Android, Web)"
+  ],
+  "license": "Pixabay Music is free and royalty-free",
+  "author": "Senior CTO for Anpip.com",
+  "created": "2025-11-24"
+}
