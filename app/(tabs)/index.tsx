@@ -939,17 +939,6 @@ export default function FeedScreen() {
           </Typography>
         </TouchableOpacity>
 
-        {/* 🔥 NEU: Duet Button */}
-        <TouchableOpacity 
-          style={styles.sidebarButton}
-          onPress={() => router.push(`/duet/${video.id}` as any)}
-        >
-          <Ionicons name="copy-outline" size={28} color="#FFFFFF" />
-          <Typography variant="caption" style={styles.sidebarText}>
-            Duet
-          </Typography>
-        </TouchableOpacity>
-        
         {/* Speichern Button */}
         <TouchableOpacity 
           style={styles.sidebarButton}
@@ -1531,7 +1520,7 @@ const styles = StyleSheet.create({
   },
   username: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: '500',
     marginBottom: 0.5,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
@@ -1540,7 +1529,7 @@ const styles = StyleSheet.create({
   },
   description: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '300',
     lineHeight: 12,
     marginBottom: 0.5,
@@ -1554,7 +1543,7 @@ const styles = StyleSheet.create({
   },
   hashtags: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '300',
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 1 },

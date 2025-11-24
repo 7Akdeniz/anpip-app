@@ -4,18 +4,25 @@
  * Zeigt hochgeladene Videos im Endlos-Feed (TikTok-Style)
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Platform, View, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
-import type { TextStyle } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Platform, View, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { Typography } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { useI18n } from '@/i18n/I18nContext';
 import { supabase } from '@/lib/supabase';
-import { Video as ExpoVideo, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
+import { Video as ExpoVideo, ResizeMode, Audio } from 'expo-av';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserFollows } from '@/lib/videoService';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+function resolveAppBaseUrl() {
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    return window.location.origin.replace(/\/$/, '');
+  }
+  return process.env.EXPO_PUBLIC_APP_URL || 'https://www.anpip.com';
+}
 
 interface VideoType {
   id: string;
@@ -34,13 +41,19 @@ interface VideoType {
 type TopTab = 'live' | 'following' | 'ads' | 'all';
 
 export default function FeedScreen() {
-  const { t } = useI18n();
+  const { requireAuth, user } = useRequireAuth();
+  const { state: authState } = useAuth();
+  const accessToken = authState.session?.access_token;
+  const followApiUrl = useMemo(() => `${resolveAppBaseUrl()}/api/follow`, []);
   const [videos, setVideos] = useState<VideoType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TopTab>('all');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [followedUsers, setFollowedUsers] = useState<Record<string, boolean>>({});
+  const [pendingFollowIds, setPendingFollowIds] = useState<Record<string, boolean>>({});
+  const badgeScales = useRef<Record<string, Animated.Value>>({});
   const flatListRef = useRef<FlatList>(null);
 
   const fetchVideosFromServer = async () => {
@@ -133,6 +146,104 @@ export default function FeedScreen() {
     itemVisiblePercentThreshold: 50,
   }).current;
 
+  useEffect(() => {
+    if (!user?.id) {
+      setFollowedUsers({});
+      setPendingFollowIds({});
+      return;
+    }
+
+    let active = true;
+    (async () => {
+      try {
+        const ids = await getUserFollows(user.id);
+        if (!active) return;
+        const followState: Record<string, boolean> = {};
+        ids.forEach((id) => {
+          followState[id] = true;
+        });
+        setFollowedUsers(followState);
+      } catch (error) {
+        console.error('Fehler beim Laden der Follow-Liste:', error);
+      }
+    })();
+
+    return () => { active = false; };
+  }, [user?.id]);
+
+  const getBadgeScaleValue = useCallback((userId: string) => {
+    if (!badgeScales.current[userId]) {
+      badgeScales.current[userId] = new Animated.Value(1);
+    }
+    return badgeScales.current[userId];
+  }, []);
+
+  const animateFollowBadge = useCallback((targetUserId: string) => {
+    const scale = getBadgeScaleValue(targetUserId);
+    Animated.sequence([
+      Animated.timing(scale, {
+        toValue: 1.2,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 160,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [getBadgeScaleValue]);
+
+  const toggleFollow = useCallback(async (targetUserId: string) => {
+    if (!targetUserId || !user) return;
+
+    const currentlyFollowing = Boolean(followedUsers[targetUserId]);
+    const nextState = !currentlyFollowing;
+    setFollowedUsers((prev) => ({ ...prev, [targetUserId]: nextState }));
+    setPendingFollowIds((prev) => ({ ...prev, [targetUserId]: true }));
+    animateFollowBadge(targetUserId);
+
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      const response = await fetch(followApiUrl, {
+        method: nextState ? 'POST' : 'DELETE',
+        headers,
+        body: JSON.stringify({ followingId: targetUserId }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || payload?.error) {
+        throw new Error(payload?.error || 'Follow-API Fehler');
+      }
+    } catch (error) {
+      console.error('Follow toggle failed:', error);
+      setFollowedUsers((prev) => ({ ...prev, [targetUserId]: currentlyFollowing }));
+    } finally {
+      setPendingFollowIds((prev) => {
+        const next = { ...prev };
+        delete next[targetUserId];
+        return next;
+      });
+    }
+  }, [accessToken, animateFollowBadge, followApiUrl, followedUsers, user]);
+
+  const handleFollowPress = useCallback((targetUserId: string) => {
+    if (!targetUserId) return;
+    requireAuth({
+      actionName: 'follow',
+      message: 'Melde dich an, um Creator:innen zu folgen',
+      onAuthSuccess: () => toggleFollow(targetUserId),
+    });
+  }, [requireAuth, toggleFollow]);
+
   const renderVideoItem = ({ item: video, index }: { item: VideoType; index: number }) => (
     <View style={styles.videoContainer}>
       {/* Video-Hintergrund (Vollbild 9:16) */}
@@ -173,13 +284,28 @@ export default function FeedScreen() {
         {/* Profilbild mit Follow Button */}
         <TouchableOpacity 
           style={styles.profileButton}
-          onPress={() => console.log('Profil besuchen', video.user_id)}
+          activeOpacity={0.8}
+          onPress={() => handleFollowPress(video.user_id || '')}
+          disabled={!video.user_id || Boolean(pendingFollowIds[video.user_id || ''])}
         >
-          <View style={styles.profileCircle}>
+          <View
+            style={[
+              styles.profileCircle,
+              video.user_id && followedUsers[video.user_id] && styles.profileCircleFollowing,
+              video.user_id && pendingFollowIds[video.user_id] && styles.profileCirclePending,
+            ]}
+          >
             <Ionicons name="person-outline" size={32} color="#FFFFFF" />
-          </View>
-          <View style={styles.followButton}>
-            <Ionicons name="add-circle-outline" size={22} color="#FFFFFF" />
+            {video.user_id && !followedUsers[video.user_id] && (
+              <Animated.View
+                style={[
+                  styles.followBadge,
+                  { transform: [{ scale: getBadgeScaleValue(video.user_id) }] },
+                ]}
+              >
+                <Ionicons name="add-circle-outline" size={22} color="#FFFFFF" />
+              </Animated.View>
+            )}
           </View>
         </TouchableOpacity>
         
@@ -446,7 +572,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
   },
-  followButton: {
+  profileCircleFollowing: {
+    borderColor: Colors.primary,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  profileCirclePending: {
+    opacity: 0.6,
+  },
+  followBadge: {
     width: 22,
     height: 22,
     borderRadius: 11,
@@ -491,7 +624,7 @@ const styles = StyleSheet.create({
   },
   username: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: '500',
     marginBottom: 0.5,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
@@ -500,7 +633,7 @@ const styles = StyleSheet.create({
   },
   description: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '300',
     lineHeight: 12,
     marginBottom: 0.5,
@@ -514,7 +647,7 @@ const styles = StyleSheet.create({
   },
   hashtags: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '300',
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 1 },

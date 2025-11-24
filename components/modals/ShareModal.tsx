@@ -20,8 +20,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Typography } from '@/components/ui';
-import { Colors, Spacing } from '@/constants/Theme';
+import { Colors } from '@/constants/Theme';
 import * as Clipboard from 'expo-clipboard';
+import { useRouter } from 'expo-router';
 
 interface ShareModalProps {
   visible: boolean;
@@ -38,8 +39,17 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   videoUrl,
   videoTitle = 'Schau dir dieses Video an!',
 }) => {
+  const router = useRouter();
   // Generiere Share-URL
   const shareUrl = videoUrl || `https://www.anpip.com/v/${videoId}`;
+
+  /**
+   * Duet
+   */
+  const handleDuet = () => {
+    onClose();
+    router.push(`/duet/${videoId}`);
+  };
 
   /**
    * Link in Zwischenablage kopieren
