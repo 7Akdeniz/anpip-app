@@ -22,6 +22,28 @@
 // TYPES (Cloudflare Worker Types)
 // ============================================================================
 
+// Cloudflare Worker Types (simplified)
+type ExecutionContext = {
+  waitUntil(promise: Promise<any>): void;
+  passThroughOnException(): void;
+};
+
+type CloudflareRequest = Request & {
+  cf?: {
+    country?: string;
+    colo?: string;
+    asn?: number;
+    city?: string;
+  };
+};
+
+type CacheStorage = {
+  default: Cache;
+  open(cacheName: string): Promise<Cache>;
+};
+
+declare const caches: CacheStorage;
+
 interface Env {
   CLOUDFLARE_ACCOUNT_ID: string;
   CLOUDFLARE_STREAM_API_TOKEN: string;
@@ -67,7 +89,7 @@ const CACHE_CONFIGS: Record<string, CacheConfig> = {
 // ============================================================================
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: CloudflareRequest, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
@@ -97,7 +119,7 @@ export default {
 // ============================================================================
 
 async function handleVideoProxy(
-  request: Request,
+  request: CloudflareRequest,
   env: Env,
   ctx: ExecutionContext
 ): Promise<Response> {
@@ -145,8 +167,8 @@ async function handleVideoProxy(
   ctx.waitUntil(
     trackVideoRequest(env.ANALYTICS, {
       videoId,
-      country: request.cf?.country as string,
-      colo: request.cf?.colo as string,
+      country: request.cf?.country || 'unknown',
+      colo: request.cf?.colo || 'unknown',
       cacheHit: false,
     })
   );
@@ -159,7 +181,7 @@ async function handleVideoProxy(
 // ============================================================================
 
 async function handleThumbnailResize(
-  request: Request,
+  request: CloudflareRequest,
   env: Env,
   ctx: ExecutionContext
 ): Promise<Response> {
@@ -231,7 +253,7 @@ async function handleThumbnailResize(
 // ============================================================================
 
 async function handleManifestOptimize(
-  request: Request,
+  request: CloudflareRequest,
   env: Env,
   ctx: ExecutionContext
 ): Promise<Response> {
@@ -254,7 +276,7 @@ async function handleManifestOptimize(
 
   // Optimize Manifest
   // 1. Entferne unnötige Qualitäten basierend auf Geolocation
-  const country = request.cf?.country as string;
+  const country = request.cf?.country || 'US';
   manifest = optimizeManifestForRegion(manifest, country);
 
   // 2. Add Preload Hints
@@ -277,7 +299,7 @@ async function handleManifestOptimize(
 // ============================================================================
 
 async function handleAnalytics(
-  request: Request,
+  request: CloudflareRequest,
   env: Env,
   ctx: ExecutionContext
 ): Promise<Response> {
@@ -421,7 +443,7 @@ function reorderQualities(manifest: string): string {
  * Track Video Request in Analytics
  */
 async function trackVideoRequest(
-  analytics: AnalyticsEngineDataset,
+  analytics: any, // AnalyticsEngineDataset
   data: {
     videoId: string;
     country: string;
@@ -429,9 +451,11 @@ async function trackVideoRequest(
     cacheHit: boolean;
   }
 ): Promise<void> {
-  analytics.writeDataPoint({
-    blobs: [data.videoId, data.country, data.colo],
-    doubles: [data.cacheHit ? 1 : 0],
-    indexes: [data.videoId],
-  });
+  if (analytics && typeof analytics.writeDataPoint === 'function') {
+    analytics.writeDataPoint({
+      blobs: [data.videoId, data.country, data.colo],
+      doubles: [data.cacheHit ? 1 : 0],
+      indexes: [data.videoId],
+    });
+  }
 }
