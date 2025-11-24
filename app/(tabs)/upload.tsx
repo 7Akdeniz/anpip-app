@@ -271,14 +271,26 @@ function UploadScreenProtected() {
 
     try {
       console.log('🎬 Starte Upload...', videoUri);
+      console.log('📋 Upload-Details:', {
+        isForMarket,
+        hasLocation: !!selectedLocation,
+        hasCategory: !!selectedCategory,
+        visibility
+      });
       
       // Video-Datei vorbereiten
       const videoName = `video_${Date.now()}.mp4`;
       
-      setUploadProgress('Video wird hochgeladen...');
+      setUploadProgress('Video wird gelesen...');
       
       // Verwende fetch mit arrayBuffer für React Native Kompatibilität
+      console.log('📖 Lese Video-Datei...');
       const response = await fetch(videoUri);
+      
+      if (!response.ok) {
+        throw new Error(`Fehler beim Lesen der Video-Datei: ${response.status}`);
+      }
+      
       const arrayBuffer = await response.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
@@ -286,11 +298,25 @@ function UploadScreenProtected() {
       const sizeMB = (originalSize / 1024 / 1024).toFixed(2);
       console.log('📦 Video Größe:', sizeMB, 'MB');
 
+      // Größen-Check VOR Upload
+      if (originalSize > 50 * 1024 * 1024) {
+        Alert.alert(
+          'Video zu groß',
+          `Dein Video ist ${sizeMB} MB groß.\n\nMaximale Größe: 50 MB\n\nBitte wähle ein kleineres Video oder komprimiere es.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
       // Zeige Größe im Upload-Fortschritt
       setUploadProgress(`Video wird hochgeladen (${sizeMB} MB)...`);
 
       // Upload zu Supabase Storage mit Timeout-Schutz
       console.log('⬆️ Starte Supabase Storage Upload...');
+      console.log('🪣 Bucket: videos');
+      console.log('📝 Dateiname:', videoName);
+      
+      const uploadStartTime = Date.now();
       
       const { data: uploadData, error: uploadError} = await supabase
         .storage
@@ -300,6 +326,9 @@ function UploadScreenProtected() {
           upsert: false,
           cacheControl: '3600',
         });
+      
+      const uploadDuration = ((Date.now() - uploadStartTime) / 1000).toFixed(2);
+      console.log(`⏱️ Upload-Dauer: ${uploadDuration}s`);
 
       if (uploadError) {
         console.error('❌ Storage Upload Fehler:', uploadError);
@@ -318,6 +347,9 @@ function UploadScreenProtected() {
         } else if (uploadError.message?.includes('network') || uploadError.message?.includes('timeout')) {
           errorTitle = 'Netzwerk-Problem';
           errorMsg = `Upload fehlgeschlagen wegen Netzwerkproblemen.\n\nBitte prüfe:\n- WLAN-Verbindung\n- Supabase-Status\n- Versuche es erneut`;
+        } else if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
+          errorTitle = 'Storage nicht konfiguriert';
+          errorMsg = `Der Supabase Storage Bucket "videos" existiert nicht.\n\nBitte erstelle den Bucket in Supabase Dashboard:\nStorage > New Bucket > Name: "videos" > Public`;
         }
         
         Alert.alert(errorTitle, errorMsg, [
@@ -344,33 +376,54 @@ function UploadScreenProtected() {
       }
 
       // Video-Eintrag in Datenbank erstellen
+      console.log('💾 Erstelle Datenbank-Eintrag...');
+      const insertData = {
+        video_url: publicUrl,
+        thumbnail_url: publicUrl,
+        description: description,
+        visibility: visibility,
+        duration: 0,
+        status: 'ready', // Wichtig: Status setzen
+        is_public: visibility === 'public', // Für RLS-Policy
+        is_market_item: isForMarket,
+        market_category: isForMarket ? selectedCategory : null,
+        market_subcategory: isForMarket ? selectedSubcategory : null,
+        location_city: isForMarket && selectedLocation ? selectedLocation.city : null,
+        location_country: isForMarket && selectedLocation ? selectedLocation.country : null,
+        location_lat: isForMarket && selectedLocation ? selectedLocation.lat : null,
+        location_lon: isForMarket && selectedLocation ? selectedLocation.lon : null,
+        location_display_name: isForMarket && selectedLocation ? selectedLocation.displayName : null,
+        location_postcode: isForMarket && selectedLocation ? selectedLocation.postcode : null,
+      };
+      
+      console.log('📝 Insert-Daten:', JSON.stringify(insertData, null, 2));
+      
       const { data: videoData, error: dbError } = await supabase
         .from('videos')
-        .insert({
-          video_url: publicUrl,
-          thumbnail_url: publicUrl,
-          description: description,
-          visibility: visibility,
-          duration: 0,
-          is_market_item: isForMarket,
-          market_category: isForMarket ? selectedCategory : null,
-          market_subcategory: isForMarket ? selectedSubcategory : null,
-          location_city: isForMarket && selectedLocation ? selectedLocation.city : null,
-          location_country: isForMarket && selectedLocation ? selectedLocation.country : null,
-          location_lat: isForMarket && selectedLocation ? selectedLocation.lat : null,
-          location_lon: isForMarket && selectedLocation ? selectedLocation.lon : null,
-          location_display_name: isForMarket && selectedLocation ? selectedLocation.displayName : null,
-          location_postcode: isForMarket && selectedLocation ? selectedLocation.postcode : null,
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (dbError) {
         console.error('❌ Datenbank Fehler:', dbError);
+        console.error('❌ DB Error Code:', dbError.code);
+        console.error('❌ DB Error Details:', dbError.details);
+        console.error('❌ DB Error Hint:', dbError.hint);
+        
+        // Bessere Fehlermeldung
+        let dbErrorMsg = dbError.message;
+        if (dbError.message?.includes('column') && dbError.message?.includes('does not exist')) {
+          dbErrorMsg = `Datenbank-Schema-Fehler: Ein Feld fehlt in der videos Tabelle.\n\nBitte führe diese Migration aus:\nsupabase/migrations/20251124_fix_video_upload_schema.sql\n\nFehler: ${dbError.message}`;
+        } else if (dbError.code === 'PGRST116') {
+          dbErrorMsg = `RLS-Policy-Fehler: Keine Berechtigung zum Erstellen von Videos.\n\nBitte prüfe die Row Level Security Policies in Supabase.\n\nFehler: ${dbError.message}`;
+        }
+        
+        Alert.alert('Datenbank-Fehler', dbErrorMsg);
         throw dbError;
       }
 
       console.log('✅ Video in Datenbank gespeichert:', videoData);
+      console.log('🆔 Video ID:', videoData.id);
 
       // 🔥 NEU: AI Content Moderation
       setUploadProgress('Prüfe Content-Richtlinien...');
