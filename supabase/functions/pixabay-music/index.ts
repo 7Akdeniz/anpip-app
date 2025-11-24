@@ -1,3 +1,6 @@
+// @ts-nocheck - This is a Deno Edge Function, not TypeScript
+// Deno-specific APIs (Deno.env, serve) are only available at runtime in Supabase Edge Functions
+
 // Pixabay Music API Edge Function
 // Schützt API-Key, implementiert Rate-Limiting & Caching
 

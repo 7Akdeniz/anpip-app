@@ -1,3 +1,6 @@
+// @ts-nocheck - This is a Deno Edge Function, not TypeScript
+// Deno-specific APIs (Deno.env, serve) are only available at runtime in Supabase Edge Functions
+
 // Free Music Archive (FMA) API Edge Function
 // Schützt API-Key, implementiert Rate-Limiting & Caching
 // FMA API Docs: https://freemusicarchive.org/api
@@ -228,7 +231,7 @@ async function getPlaylist(playlistId: string): Promise<any> {
   return data.dataset[0]
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // CORS Headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -276,7 +279,7 @@ serve(async (req) => {
 
     // Parse Request
     const url = new URL(req.url)
-    const params = Object.fromEntries(url.searchParams.entries()) as FMARequestParams
+    const params = Object.fromEntries(url.searchParams.entries()) as unknown as FMARequestParams
     const action = params.action || 'search'
 
     // Cache Key
