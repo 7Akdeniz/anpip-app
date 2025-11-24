@@ -711,7 +711,10 @@ if ('serviceWorker' in navigator) {
 `;
 
 // ==================== WEB VITALS TRACKING ====================
+const webVitalsEndpoint = process.env.WEB_VITALS_ENDPOINT || '';
+
 const webVitalsScript = `
+const endpoint = ${JSON.stringify(webVitalsEndpoint)};
 // Core Web Vitals Tracking
 (function() {
   function sendToAnalytics(metric) {
@@ -725,10 +728,15 @@ const webVitalsScript = `
     });
     
     // Send to your analytics endpoint
+    if (!endpoint) {
+      console.debug('[Web Vitals] analytics endpoint disabled');
+      return;
+    }
+
     if (navigator.sendBeacon) {
-      navigator.sendBeacon('/api/analytics/web-vitals', body);
+      navigator.sendBeacon(endpoint, body);
     } else {
-      fetch('/api/analytics/web-vitals', {
+      fetch(endpoint, {
         method: 'POST',
         body: body,
         headers: { 'Content-Type': 'application/json' },
