@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
+import { Platform, View, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
 import type { TextStyle } from 'react-native';
 import { Typography } from '@/components/ui';
 import { Colors, Spacing } from '@/constants/Theme';
@@ -43,20 +43,47 @@ export default function FeedScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
+  const fetchVideosFromServer = async () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.anpip.com';
+    const feedUrl = new URL('/api/videos/feed', origin);
+
+    const response = await fetch(feedUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Feed-API antwortet mit ' + response.status);
+    }
+
+    const payload = await response.json();
+    return payload.videos || [];
+  };
+
   const loadVideos = async () => {
     try {
       console.log('📥 Lade Videos...');
-      
-      const { data, error } = await supabase
-        .from('videos')
-        .select('*')
-        .eq('visibility', 'public')
-        .order('created_at', { ascending: false })
-        .limit(20);
 
-      if (error) {
-        console.error('❌ Fehler beim Laden:', error);
-        throw error;
+      let data: VideoType[] | null = null;
+
+      if (Platform.OS === 'web') {
+        data = await fetchVideosFromServer();
+      } else {
+        const { data: supabaseData, error } = await supabase
+          .from('videos')
+          .select('*')
+          .eq('visibility', 'public')
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) {
+          console.error('❌ Fehler beim Laden über Supabase:', error);
+          throw error;
+        }
+
+        data = supabaseData || [];
       }
 
       console.log('✅ Videos geladen:', data?.length || 0);
@@ -64,9 +91,10 @@ export default function FeedScreen() {
         console.log('🎥 Erstes Video:', {
           id: data[0].id,
           video_url: data[0].video_url,
-          description: data[0].description
+          description: data[0].description,
         });
       }
+
       setVideos(data || []);
     } catch (error) {
       console.error('Fehler:', error);
