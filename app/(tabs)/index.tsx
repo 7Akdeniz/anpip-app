@@ -198,6 +198,13 @@ export default function FeedScreen() {
     try {
       console.log('📥 Lade Videos...', 'Tab:', activeTab, 'Seite:', currentPage);
       
+      // Teste ZUERST die Verbindung
+      const connectionTest = await supabase.from('videos').select('id').limit(1);
+      if (connectionTest.error) {
+        console.error('❌ Datenbankverbindung fehlgeschlagen:', connectionTest.error);
+        throw new Error('Datenbankverbindung fehlgeschlagen: ' + connectionTest.error.message);
+      }
+      
       let processedVideos: VideoType[] = [];
 
       // TAB-BASIERTE FILTERUNG
@@ -224,7 +231,10 @@ export default function FeedScreen() {
           .range(currentPage * BATCH_SIZE, (currentPage + 1) * BATCH_SIZE - 1)
           .limit(BATCH_SIZE);
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Supabase Fehler (Market):', error);
+          throw error;
+        }
         processedVideos = data || [];
         console.log('🏪 Market-Videos geladen:', processedVideos.length);
         
@@ -243,7 +253,11 @@ export default function FeedScreen() {
           .range(currentPage * BATCH_SIZE, (currentPage + 1) * BATCH_SIZE - 1)
           .limit(BATCH_SIZE);
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Supabase Fehler:', error);
+          console.error('Details:', JSON.stringify(error, null, 2));
+          throw error;
+        }
         processedVideos = data || [];
         console.log('📺 Alle Videos geladen:', processedVideos.length);
       }
@@ -339,7 +353,23 @@ export default function FeedScreen() {
       
       setHasMore(processedVideos.length === BATCH_SIZE);
     } catch (error) {
-      console.error('Fehler:', error);
+      console.error('❌ Fehler beim Laden der Videos:', error);
+      
+      // Zeige User-Friendly Alert
+      Alert.alert(
+        'Fehler beim Laden',
+        'Videos konnten nicht geladen werden. Bitte überprüfe deine Internetverbindung.\n\nDetails: ' + 
+        (error instanceof Error ? error.message : JSON.stringify(error)),
+        [
+          { text: 'Nochmal versuchen', onPress: () => loadVideos(false) },
+          { text: 'OK', style: 'cancel' }
+        ]
+      );
+      
+      // Setze leere Videos falls erster Load
+      if (!loadMore) {
+        setVideos([]);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -1,0 +1,39 @@
+# ============================================================================
+# CLOUDFLARE WORKERS CONFIGURATION
+# ============================================================================
+
+name = "anpip-video-cdn"
+main = "cloudflare-video-worker.ts"
+compatibility_date = "2024-11-24"
+workers_dev = true
+
+# Account ID
+account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+# KV Namespaces
+kv_namespaces = [
+  { binding = "VIDEO_CACHE", id = "YOUR_KV_NAMESPACE_ID" }
+]
+
+# Analytics Engine
+analytics_engine_datasets = [
+  { binding = "ANALYTICS" }
+]
+
+# Routes (Deployment)
+routes = [
+  { pattern = "anpip.com/api/video/*", zone_name = "anpip.com" },
+  { pattern = "anpip.com/api/thumbnail/*", zone_name = "anpip.com" },
+  { pattern = "anpip.com/api/manifest/*", zone_name = "anpip.com" }
+]
+
+# Environment Variables
+[vars]
+CLOUDFLARE_ACCOUNT_ID = "YOUR_ACCOUNT_ID"
+
+# Secrets (use: wrangler secret put CLOUDFLARE_STREAM_API_TOKEN)
+# CLOUDFLARE_STREAM_API_TOKEN = "..."
+
+# Limits
+[limits]
+cpu_ms = 50

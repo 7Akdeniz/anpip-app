@@ -31,11 +31,96 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fkmhucsjybyhjrgodwcx.supabase.co https://vlibyocpdguxpretjvnz.supabase.co https://*.vercel.app https://*.anpip.com https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' https: blob:; connect-src 'self' https://fkmhucsjybyhjrgodwcx.supabase.co https://vlibyocpdguxpretjvnz.supabase.co https://*.supabase.co wss://*.supabase.co https://*.vercel.app https://*.anpip.com https://accounts.google.com https://ipapi.co https://www.google-analytics.com https://nominatim.openstreetmap.org; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' https://accounts.google.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fkmhucsjybyhjrgodwcx.supabase.co https://vlibyocpdguxpretjvnz.supabase.co https://*.vercel.app https://*.anpip.com https://accounts.google.com https://apis.google.com https://customer-*.cloudflarestream.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' https: blob: https://api.anpip.com https://customer-*.cloudflarestream.com; connect-src 'self' https://api.anpip.com wss://api.anpip.com https://fkmhucsjybyhjrgodwcx.supabase.co https://vlibyocpdguxpretjvnz.supabase.co https://*.supabase.co wss://*.supabase.co https://*.vercel.app https://*.anpip.com https://accounts.google.com https://ipapi.co https://www.google-analytics.com https://nominatim.openstreetmap.org https://customer-*.cloudflarestream.com; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' https://accounts.google.com https://customer-*.cloudflarestream.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
         },
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=63072000; includeSubDomains; preload"
+        }
+      ]
+    },
+    {
+      "source": "/api/video/**",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, s-maxage=31536000, immutable, stale-while-revalidate=86400"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "public, max-age=31536000"
+        },
+        {
+          "key": "Vary",
+          "value": "Accept-Encoding"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/api/thumbnail/**",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, s-maxage=2592000, immutable"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "public, max-age=2592000"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/**/*.m3u8",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=10, s-maxage=10, stale-while-revalidate=30"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/vnd.apple.mpegurl"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/**/*.ts",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, s-maxage=31536000, immutable"
+        },
+        {
+          "key": "Content-Type",
+          "value": "video/mp2t"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/**/*.m4s",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, s-maxage=31536000, immutable"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         }
       ]
     },

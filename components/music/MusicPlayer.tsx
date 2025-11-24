@@ -12,7 +12,6 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useMusic } from '../../contexts/MusicContext'
-import Slider from '@react-native-community/slider'
 
 interface MusicPlayerProps {
   style?: any
@@ -108,16 +107,9 @@ export function MusicPlayer({ style, compact = false }: MusicPlayerProps) {
       {/* Progress Bar */}
       <View style={styles.progressContainer}>
         <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-        <Slider
-          style={styles.progressBar}
-          minimumValue={0}
-          maximumValue={1}
-          value={progress}
-          onSlidingComplete={seekTo}
-          minimumTrackTintColor="#1DB954"
-          maximumTrackTintColor="#444"
-          thumbTintColor="#1DB954"
-        />
+        <View style={styles.progressBarContainer}>
+          <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+        </View>
         <Text style={styles.timeText}>-{formatTime(remainingTime)}</Text>
       </View>
 
@@ -132,19 +124,6 @@ export function MusicPlayer({ style, compact = false }: MusicPlayerProps) {
               color="#fff"
             />
           </TouchableOpacity>
-          
-          {Platform.OS !== 'web' && (
-            <Slider
-              style={styles.volumeSlider}
-              minimumValue={0}
-              maximumValue={1}
-              value={volume}
-              onValueChange={setVolume}
-              minimumTrackTintColor="#1DB954"
-              maximumTrackTintColor="#444"
-              thumbTintColor="#1DB954"
-            />
-          )}
         </View>
 
         {/* Play/Pause */}
@@ -189,7 +168,7 @@ export function MusicPlayer({ style, compact = false }: MusicPlayerProps) {
       </View>
 
       {/* Tags */}
-      {currentTrack.tags && (
+      {currentTrack && currentTrack.tags && (
         <View style={styles.tagsContainer}>
           {currentTrack.tags.split(',').slice(0, 5).map((tag, index) => (
             <View key={index} style={styles.tag}>
@@ -251,6 +230,18 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     marginHorizontal: 8,
+  },
+  progressBarContainer: {
+    flex: 1,
+    height: 4,
+    backgroundColor: '#444',
+    borderRadius: 2,
+    marginHorizontal: 8,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#1DB954',
   },
   timeText: {
     color: '#aaa',
