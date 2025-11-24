@@ -1,4 +1,4 @@
-// Unified Music Context (FMA + Pixabay)
+// Unified Music Context (FMA + Pixabay + Mixkit)
 // Erweiterung des MusicContext um Multi-Source Support
 
 import React, { createContext, useContext, useState, useCallback } from 'react'
@@ -8,17 +8,20 @@ import type {
   MusicSource,
 } from '../types/fma-music'
 import type { PixabayMusicTrack } from '../types/pixabay-music'
+import type { MixkitTrack, MixkitNormalizedTrack } from '../types/mixkit-music'
 import { fmaService } from '../lib/fma-service'
 import { musicService } from '../lib/music-service'
+import { mixkitService } from '../lib/mixkit-service'
 
 interface UnifiedMusicContextType {
   // Source Selection
   activeSource: MusicSource
   setActiveSource: (source: MusicSource) => void
   
-  // Favorites (beide Sources)
+  // Favorites (alle Sources)
   fmaFavorites: Set<string>
   pixabayFavorites: Set<number>
+  mixkitFavorites: Set<string>
   
   // FMA Actions
   addFMAFavorite: (track: FMANormalizedTrack) => Promise<void>
@@ -30,14 +33,19 @@ interface UnifiedMusicContextType {
   removePixabayFavorite: (trackId: number) => Promise<void>
   isPixabayFavorite: (trackId: number) => boolean
   
+  // Mixkit Actions
+  addMixkitFavorite: (track: MixkitTrack) => Promise<void>
+  removeMixkitFavorite: (trackId: string) => Promise<void>
+  isMixkitFavorite: (trackId: string) => boolean
+  
   // Selection (für Video-Editor)
-  selectedTrack: FMANormalizedTrack | PixabayMusicTrack | null
+  selectedTrack: FMANormalizedTrack | PixabayMusicTrack | MixkitNormalizedTrack | null
   selectedSource: MusicSource | null
-  selectTrack: (track: FMANormalizedTrack | PixabayMusicTrack, source: MusicSource) => void
+  selectTrack: (track: FMANormalizedTrack | PixabayMusicTrack | MixkitNormalizedTrack, source: MusicSource) => void
   clearSelection: () => void
   
   // Attribution Helper
-  getAttribution: (track: FMANormalizedTrack | PixabayMusicTrack, source: MusicSource) => string
+  getAttribution: (track: FMANormalizedTrack | PixabayMusicTrack | MixkitNormalizedTrack, source: MusicSource) => string
 }
 
 const UnifiedMusicContext = createContext<UnifiedMusicContextType | undefined>(undefined)
@@ -46,7 +54,8 @@ export function UnifiedMusicProvider({ children }: { children: React.ReactNode }
   const [activeSource, setActiveSource] = useState<MusicSource>('fma')
   const [fmaFavorites, setFMAFavorites] = useState<Set<string>>(new Set())
   const [pixabayFavorites, setPixabayFavorites] = useState<Set<number>>(new Set())
-  const [selectedTrack, setSelectedTrack] = useState<FMANormalizedTrack | PixabayMusicTrack | null>(null)
+  const [mixkitFavorites, setMixkitFavorites] = useState<Set<string>>(new Set())
+  const [selectedTrack, setSelectedTrack] = useState<FMANormalizedTrack | PixabayMusicTrack | MixkitNormalizedTrack | null>(null)
   const [selectedSource, setSelectedSource] = useState<MusicSource | null>(null)
 
   // Load Favorites
@@ -60,7 +69,11 @@ export function UnifiedMusicProvider({ children }: { children: React.ReactNode }
       const pixabayFavs = await musicService.getFavorites()
       setPixabayFavorites(new Set(pixabayFavs.map(f => f.track_id)))
 
-      console.log(`🎵 Loaded ${fmaFavs.length} FMA favorites, ${pixabayFavs.length} Pixabay favorites`)
+      // Mixkit Favorites
+      const mixkitFavs = await mixkitService.getFavorites()
+      setMixkitFavorites(new Set(mixkitFavs.map(f => f.id)))
+
+      console.log(`🎵 Loaded ${fmaFavs.length} FMA, ${pixabayFavs.length} Pixabay, ${mixkitFavs.length} Mixkit favorites`)
     } catch (error) {
       console.error('Load Favorites Error:', error)
     }
@@ -124,11 +137,40 @@ export function UnifiedMusicProvider({ children }: { children: React.ReactNode }
     return pixabayFavorites.has(trackId)
   }, [pixabayFavorites])
 
+  // Mixkit Favorites
+  const addMixkitFavorite = useCallback(async (track: MixkitTrack) => {
+    try {
+      await mixkitService.addToFavorites(track)
+      setMixkitFavorites(prev => new Set(prev).add(track.id))
+    } catch (error) {
+      console.error('Add Mixkit Favorite Error:', error)
+      throw error
+    }
+  }, [])
+
+  const removeMixkitFavorite = useCallback(async (trackId: string) => {
+    try {
+      await mixkitService.removeFromFavorites(trackId)
+      setMixkitFavorites(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(trackId)
+        return newSet
+      })
+    } catch (error) {
+      console.error('Remove Mixkit Favorite Error:', error)
+      throw error
+    }
+  }, [])
+
+  const isMixkitFavorite = useCallback((trackId: string) => {
+    return mixkitFavorites.has(trackId)
+  }, [mixkitFavorites])
+
   // Track Selection
-  const selectTrack = useCallback((track: FMANormalizedTrack | PixabayMusicTrack, source: MusicSource) => {
+  const selectTrack = useCallback((track: FMANormalizedTrack | PixabayMusicTrack | MixkitNormalizedTrack, source: MusicSource) => {
     setSelectedTrack(track)
     setSelectedSource(source)
-    console.log(`🎵 Selected ${source} track:`, 'name' in track ? track.name : (track as any).track_title)
+    console.log(`🎵 Selected ${source} track:`, 'name' in track ? track.name : track.title)
   }, [])
 
   const clearSelection = useCallback(() => {
@@ -137,12 +179,15 @@ export function UnifiedMusicProvider({ children }: { children: React.ReactNode }
   }, [])
 
   // Attribution Helper
-  const getAttribution = useCallback((track: FMANormalizedTrack | PixabayMusicTrack, source: MusicSource): string => {
+  const getAttribution = useCallback((track: FMANormalizedTrack | PixabayMusicTrack | MixkitNormalizedTrack, source: MusicSource): string => {
     if (source === 'fma') {
       return fmaService.getAttributionText(track as FMANormalizedTrack)
-    } else {
-      // Pixabay Attribution
+    } else if (source === 'pixabay') {
       return `Music by ${(track as PixabayMusicTrack).artist} from Pixabay`
+    } else {
+      // Mixkit
+      const mixkitTrack = track as MixkitNormalizedTrack
+      return `Music: ${mixkitTrack.title} by ${mixkitTrack.artist} - Mixkit License`
     }
   }, [])
 
@@ -156,12 +201,16 @@ export function UnifiedMusicProvider({ children }: { children: React.ReactNode }
     setActiveSource,
     fmaFavorites,
     pixabayFavorites,
+    mixkitFavorites,
     addFMAFavorite,
     removeFMAFavorite,
     isFMAFavorite,
     addPixabayFavorite,
     removePixabayFavorite,
     isPixabayFavorite,
+    addMixkitFavorite,
+    removeMixkitFavorite,
+    isMixkitFavorite,
     selectedTrack,
     selectedSource,
     selectTrack,

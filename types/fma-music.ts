@@ -1,6 +1,9 @@
 // Free Music Archive (FMA) API TypeScript Types
 // Vollständige Type-Definitionen für FMA Music Integration
 
+// ==================== MUSIC SOURCE TYPE ====================
+export type MusicSource = 'fma' | 'pixabay' | 'mixkit'
+
 // ==================== FMA API RESPONSE TYPES ====================
 
 export interface FMATrack {
@@ -269,9 +272,7 @@ export const FMA_LICENSES: FMALicenseFilter[] = [
   },
 ]
 
-// ==================== UNIFIED MUSIC TYPES (FMA + Pixabay) ====================
-
-export type MusicSource = 'fma' | 'pixabay'
+// ==================== UNIFIED MUSIC TYPES (FMA + Pixabay + Mixkit) ====================
 
 export interface UnifiedMusicTrack {
   id: string
