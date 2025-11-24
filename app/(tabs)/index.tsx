@@ -38,6 +38,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { getPersonalizedFeed, trackVideoInteraction } from '@/lib/recommendation-engine-real';
 import { sendPushNotification } from '@/lib/notifications-engine';
 import { useAutoScroll, loadAutoScrollSetting } from '@/hooks/useAutoScroll';
+import { useVideoTimeline, useVideoTimelineUpdater } from '@/contexts/VideoTimelineContext';
 
 // Web Video Component
 const WebVideo = Platform.OS === 'web' ? require('react').createElement : null;
@@ -57,6 +58,8 @@ const IPAD_AIR_HEIGHT = 924;
 
 const IPAD_PRO_WIDTH = 600;           // iPad Pro 12.9" (1024×1366)
 const IPAD_PRO_HEIGHT = 1066;
+
+const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
 interface VideoType {
   id: string;
@@ -107,6 +110,41 @@ export default function FeedScreen() {
   const loadingMoreRef = useRef(false);
   const finishedVideosRef = useRef<Set<string>>(new Set()); // Trackt Videos die zu Ende gegangen sind
   const videoRefsRef = useRef<Map<string, any>>(new Map()); // Refs für Video-Player
+  const { activateVideo, updatePlaybackStatus, resetTimeline, registerSeekHandler } = useVideoTimelineUpdater();
+  const { isScrubbing } = useVideoTimeline();
+  const currentDurationRef = useRef(0);
+
+  const seekToCurrentVideo = useCallback(
+    async (progressValue: number) => {
+      if (!playingVideo) return;
+
+      const duration = currentDurationRef.current;
+      if (duration <= 0) return;
+
+      const normalized = clamp(progressValue);
+      const targetMillis = normalized * duration;
+
+      if (Platform.OS === 'web') {
+        const videoElement = document.getElementById(`video-${playingVideo}`) as HTMLVideoElement;
+        if (videoElement) {
+          videoElement.currentTime = targetMillis / 1000;
+        }
+      } else {
+        const videoRef = videoRefsRef.current.get(playingVideo);
+        if (videoRef) {
+          await videoRef.setPositionAsync(targetMillis).catch(() => {
+            // Ignore errors; we still update timeline UI
+          });
+        }
+      }
+    },
+    [playingVideo]
+  );
+
+  useEffect(() => {
+    registerSeekHandler((progressValue) => seekToCurrentVideo(progressValue));
+    return () => registerSeekHandler(null);
+  }, [registerSeekHandler, seekToCurrentVideo]);
   
   // Modal States
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -237,7 +275,7 @@ export default function FeedScreen() {
             }
             return video.distance !== undefined && video.distance <= 50; // Max 50km
           });
-          
+
           console.log(`📍 Lokale Filter: ${processedVideos.length} Videos in ${userLocation.city} oder <50km`);
         }
 
@@ -371,6 +409,10 @@ export default function FeedScreen() {
       }
     }
   }, [videos]);
+
+  useEffect(() => {
+    activateVideo(playingVideo);
+  }, [playingVideo, activateVideo]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -622,6 +664,7 @@ export default function FeedScreen() {
         }, 100);
       }
     }
+
   }, [currentUserId]);
 
   const onViewableItemsChangedRef = useRef({ onViewableItemsChanged });
@@ -631,6 +674,10 @@ export default function FeedScreen() {
     minimumViewTime: 100,
     waitForInteraction: false,
   }).current;
+
+  const handleScrollBeginDrag = useCallback(() => {
+    resetTimeline();
+  }, [resetTimeline]);
 
   // ============================================================================
   // AUTO-SCROLL INTEGRATION
@@ -654,6 +701,14 @@ export default function FeedScreen() {
     onEndReached,
     hasMore,
   });
+
+  useEffect(() => {
+    if (isScrubbing) {
+      onVideoPause();
+    } else {
+      onVideoPlay();
+    }
+  }, [isScrubbing, onVideoPause, onVideoPlay]);
 
   // Manuelle Scroll-Erkennung
   const handleScroll = useCallback(() => {
@@ -754,6 +809,17 @@ export default function FeedScreen() {
                 e.target.play().catch(() => console.log('Loop replay blocked'));
               }
             }}
+            onTimeUpdate={(event: any) => {
+              if (playingVideo !== video.id) return;
+              const target = event.currentTarget as HTMLVideoElement;
+              currentDurationRef.current = (target.duration || 0) * 1000;
+              updatePlaybackStatus({
+                videoId: video.id,
+                positionMillis: (target.currentTime || 0) * 1000,
+                durationMillis: (target.duration || 0) * 1000,
+                isPlaying: !target.paused,
+              });
+            }}
           />
         ) : (
           <ExpoVideo
@@ -772,17 +838,27 @@ export default function FeedScreen() {
             isMuted={false}
             volume={1.0}
             onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
+              if (!status.isLoaded) return;
+
               // Auto-Scroll bei Video-Ende
               if (
                 autoScrollEnabled &&
                 isActive &&
-                status.isLoaded &&
                 status.didJustFinish &&
                 status.durationMillis
               ) {
                 console.log(`🎬 Native Video beendet: ${video.id}, Dauer: ${status.durationMillis}ms`);
                 handleVideoEnd(status.durationMillis);
               }
+
+              currentDurationRef.current = status.durationMillis ?? currentDurationRef.current;
+
+              updatePlaybackStatus({
+                videoId: video.id,
+                positionMillis: status.positionMillis ?? 0,
+                durationMillis: status.durationMillis ?? 0,
+                isPlaying: status.isPlaying,
+              });
             }}
           />
         )}
@@ -1085,6 +1161,7 @@ export default function FeedScreen() {
             disableIntervalMomentum={true}
             scrollEventThrottle={16}
             onScroll={handleScroll}
+            onScrollBeginDrag={handleScrollBeginDrag}
             onViewableItemsChanged={onViewableItemsChangedRef.current.onViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}
             onEndReached={onEndReached}
