@@ -1023,13 +1023,13 @@ export default function FeedScreen() {
             color={savedVideos.has(video.id) ? Colors.primary : "#FFFFFF"}
           />
           <Typography variant="caption" style={styles.sidebarText}>
-            {savedVideos.has(video.id) ? '✓' : ''}
+            {savedVideos.has(video.id) ? '✓' : '0'}
           </Typography>
         </TouchableOpacity>
         
         {/* Gift Button */}
         <TouchableOpacity 
-          style={styles.sidebarButton}
+          style={[styles.sidebarButton, { marginBottom: -8 }]}
           onPress={() => handleOpenGift(video)}
         >
           <Ionicons name="gift-outline" size={24} color="#FFFFFF" />
