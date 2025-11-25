@@ -11,6 +11,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { cloudflareStream } from '@/lib/cloudflare-stream';
+import { VIDEO_LIMITS } from '@/config/video-limits';
 
 // Supabase Client mit Service Role für Backend-Operations
 const supabase = createClient(
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     const { 
       title, 
       description,
-      maxDurationSeconds = 7200, // 2 Stunden default
+      maxDurationSeconds = VIDEO_LIMITS.TECHNICAL_MAX_DURATION_SECONDS, // Use technical max for Cloudflare
       locationLat,
       locationLng,
       locationName,

@@ -18,6 +18,7 @@ import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
+import { VIDEO_LIMITS } from '@/config/video-limits';
 
 // ============================================================================
 // TYPES
@@ -35,8 +36,8 @@ type UploadStatus =
 interface VideoUploadProps {
   onUploadComplete?: (videoId: string) => void;
   onError?: (error: string) => void;
-  maxSizeBytes?: number; // Default: 10GB
-  maxDurationSeconds?: number; // Default: 7200 (2 Stunden)
+  maxSizeBytes?: number; // Optional: Override für spezielle Use Cases
+  maxDurationSeconds?: number; // Optional: Override für spezielle Use Cases
 }
 
 // ============================================================================
@@ -46,8 +47,8 @@ interface VideoUploadProps {
 export default function VideoUpload({
   onUploadComplete,
   onError,
-  maxSizeBytes = 10 * 1024 * 1024 * 1024, // 10GB
-  maxDurationSeconds = 7200, // 2 Stunden
+  maxSizeBytes = VIDEO_LIMITS.MAX_SIZE_BYTES, // Zentrale Config
+  maxDurationSeconds = VIDEO_LIMITS.ACTIVE_MAX_DURATION_SECONDS, // Zentrale Config
 }: VideoUploadProps) {
   
   // State
@@ -70,32 +71,12 @@ export default function VideoUpload({
   /**
    * Formatiert Bytes in lesbare Größe
    */
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-  };
+  const formatBytes = VIDEO_LIMITS.formatBytes;
 
   /**
    * Formatiert Sekunden in lesbare Zeit
    */
-  const formatTime = (seconds: number): string => {
-    if (!isFinite(seconds) || seconds < 0) return 'Berechne...';
-    
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`;
-    } else {
-      return `${secs}s`;
-    }
-  };
+  const formatTime = VIDEO_LIMITS.formatDuration;
 
   /**
    * Berechnet Restzeit basierend auf Upload-Geschwindigkeit
@@ -151,7 +132,16 @@ export default function VideoUpload({
       if (file.fileSize && file.fileSize > maxSizeBytes) {
         Alert.alert(
           'Datei zu groß',
-          `Maximale Dateigröße: ${formatBytes(maxSizeBytes)}`
+          VIDEO_LIMITS.getErrorMessage('size', file.fileSize)
+        );
+        return;
+      }
+
+      // Dauern-Validierung (falls verfügbar)
+      if (file.duration && file.duration > maxDurationSeconds) {
+        Alert.alert(
+          'Video zu lang',
+          VIDEO_LIMITS.getErrorMessage('duration', file.duration / 1000) // ms → s
         );
         return;
       }

@@ -12,7 +12,7 @@ import { Typography, PrimaryButton } from '@/components/ui';
 import { Colors, Spacing, BorderRadius } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Video } from 'expo-av';
+import { Video, Audio } from 'expo-av';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -20,7 +20,9 @@ import { BlurView } from 'expo-blur';
 import { LocationAutocomplete, Location } from '@/components/LocationAutocomplete';
 import { useLocation } from '@/contexts/LocationContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { autoModerateVideo } from '@/lib/moderation-engine';
+import { VIDEO_LIMITS } from '@/config/video-limits';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -179,8 +181,12 @@ export default function UploadScreen() {
 
 // Eigentlicher Upload Screen (nur für authentifizierte User)
 function UploadScreenProtected() {
+  console.log('📱 UploadScreenProtected geladen - Platform:', Platform.OS);
+  
   const router = useRouter();
   const { userLocation } = useLocation(); // Nutze globalen Location-Context
+  const { user: authUser } = useRequireAuth(); // 🔥 iOS FIX: Hole User aus Auth-Context
+  const { state: authState } = useAuth(); // 🔥 iOS FIX: Hole Session aus Auth-Context
   
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [description, setDescription] = useState('');
@@ -210,41 +216,70 @@ function UploadScreenProtected() {
   }, [isForMarket, userLocation]);
 
   const pickVideo = async () => {
+    console.log('📹 pickVideo() aufgerufen - Platform:', Platform.OS);
+    
     // Berechtigungen anfragen
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
+      console.warn('⚠️ Medienbibliothek-Berechtigung nicht erteilt');
       Alert.alert('Berechtigung erforderlich', 'Bitte erlaube den Zugriff auf deine Galerie, um Videos auszuwählen.');
       return;
     }
+    
+    console.log('✅ Medienbibliothek-Berechtigung erteilt');
 
     // Video aus Galerie wählen mit optimierter Qualität
+    console.log('🎬 Öffne ImagePicker...');
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      allowsEditing: true,
+      allowsEditing: false, // WICHTIG: Muss false sein für Videos > 10 Min!
       quality: 0.7, // 70% Qualität - reduziert Größe um ~60%, sieht noch gut aus
-      videoMaxDuration: 62, // Max 62 Sekunden
+      videoMaxDuration: VIDEO_LIMITS.ACTIVE_MAX_DURATION_SECONDS, // Zentrale Config
       videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium, // Medium Qualität für schnellere Uploads
+    });
+
+    console.log('📸 ImagePicker Result:', {
+      canceled: result.canceled,
+      hasAssets: !result.canceled && result.assets ? result.assets.length > 0 : false,
     });
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       
-      // Prüfe Video-Dauer (falls verfügbar)
-      if (asset.duration && asset.duration > 62000) { // 62000ms = 62 Sekunden
-        Alert.alert(
-          'Video zu lang', 
-          'Dein Video darf maximal 62 Sekunden lang sein. Bitte schneide es kürzer.'
-        );
+      // ⚠️ BUG FIX: Expo ImagePicker gibt manchmal falsche duration zurück!
+      // asset.duration kann in Millisekunden ODER Sekunden sein (inkonsistent)
+      // Lösung: Nur Dateigröße prüfen, Dauer beim Upload aus Metadata lesen
+      const fileSizeInBytes = asset.fileSize || 0;
+      
+      console.log('📹 Video Details:', {
+        uri: asset.uri,
+        größe: `${(fileSizeInBytes / 1024 / 1024).toFixed(2)} MB`,
+        dauer_roh: asset.duration, // Raw-Wert für Debugging
+        type: asset.type,
+        width: asset.width,
+        height: asset.height,
+      });
+      
+      // NUR Größen-Validierung (Dauer ist unreliable in ImagePicker)
+      const sizeValidation = fileSizeInBytes > 0
+        ? VIDEO_LIMITS.validate({ sizeBytes: fileSizeInBytes })
+        : { valid: true };
+      
+      if (!sizeValidation.valid) {
+        Alert.alert('Video zu groß', sizeValidation.error || 'Datei zu groß');
         return;
       }
       
+      // Video akzeptieren - Dauer wird später beim Upload geprüft
       setVideoUri(asset.uri);
-      console.log('Video ausgewählt:', asset.uri, 'Dauer:', asset.duration, 'Größe:', asset.fileSize);
+      console.log('✅ Video ausgewählt (Dauer wird beim Upload validiert)');
     }
   };
 
   const uploadVideo = async () => {
+    console.log('🚀 uploadVideo() aufgerufen - Platform:', Platform.OS);
+    
     if (!videoUri) {
       Alert.alert('Fehler', 'Bitte wähle zuerst ein Video aus.');
       return;
@@ -266,12 +301,14 @@ function UploadScreenProtected() {
       }
     }
 
+    console.log('✅ Validierungen bestanden, starte Upload-Prozess');
     setUploading(true);
     setUploadProgress('Video wird vorbereitet...');
 
     try {
       console.log('🎬 Starte Upload...', videoUri);
       console.log('📋 Upload-Details:', {
+        platform: Platform.OS,
         isForMarket,
         hasLocation: !!selectedLocation,
         hasCategory: !!selectedCategory,
@@ -285,39 +322,148 @@ function UploadScreenProtected() {
       
       console.log('📖 Lese Video-Datei...');
       
-      // Lese Video als ArrayBuffer
-      const response = await fetch(videoUri);
-      const arrayBuffer = await response.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
+      // ✅ WICHTIG: Dauer aus Video-Metadata lesen (ImagePicker gibt falsche Werte)
+      // 🔥 iOS FIX: Mit Timeout, da Audio.Sound manchmal hängt
+      try {
+        setUploadProgress('Validiere Video-Dauer...');
+        
+        // Promise mit 5 Sekunden Timeout
+        const durationValidation = await Promise.race([
+          (async () => {
+            const { sound, status } = await Audio.Sound.createAsync(
+              { uri: videoUri },
+              { shouldPlay: false }
+            );
+            
+            if (status.isLoaded && status.durationMillis) {
+              const actualDurationSeconds = status.durationMillis / 1000;
+              console.log('⏱️ Tatsächliche Videodauer:', actualDurationSeconds, 'Sekunden');
+              
+              // Cleanup
+              try {
+                await sound.unloadAsync();
+              } catch (cleanupError) {
+                console.warn('⚠️ Sound cleanup Fehler:', cleanupError);
+              }
+              
+              return { 
+                success: true, 
+                durationSeconds: actualDurationSeconds 
+              };
+            }
+            
+            return { success: false };
+          })(),
+          // Timeout nach 5 Sekunden
+          new Promise<{ success: false; timeout: true }>((resolve) => 
+            setTimeout(() => resolve({ success: false, timeout: true }), 5000)
+          )
+        ]);
+        
+        if (durationValidation.success && durationValidation.durationSeconds) {
+          // Jetzt ECHTE Dauer-Validierung
+          const validation = VIDEO_LIMITS.validate({ 
+            durationSeconds: durationValidation.durationSeconds 
+          });
+          
+          if (!validation.valid) {
+            Alert.alert('Video zu lang', validation.error || 'Video zu lang');
+            setUploading(false);
+            setUploadProgress('');
+            return;
+          }
+          
+          console.log('✅ Video-Dauer OK:', durationValidation.durationSeconds, 's');
+        } else if ('timeout' in durationValidation && durationValidation.timeout) {
+          console.warn('⚠️ Dauer-Validierung Timeout - fahre ohne Validierung fort');
+        } else {
+          console.warn('⚠️ Konnte Dauer nicht ermitteln - fahre ohne Validierung fort');
+        }
+      } catch (durationError) {
+        console.warn('⚠️ Dauer-Validierung fehlgeschlagen:', durationError);
+        // Weitermachen - Upload kann trotzdem klappen
+      }
       
-      const sizeMB = (uint8Array.length / 1024 / 1024).toFixed(2);
-      console.log('📦 Video Größe:', sizeMB, 'MB');
-      
-      setUploadProgress(`Video wird hochgeladen (${sizeMB} MB)...`);
+      setUploadProgress('Video wird vorbereitet...');
       
       console.log('⬆️ Starte Supabase Storage Upload...');
       console.log('🪣 Bucket: videos');
       console.log('📝 Dateiname:', videoName);
+      console.log('🔧 Methode: Blob Upload (React Native kompatibel)');
       
       const uploadStartTime = Date.now();
       
-      // DIREKTER SUPABASE UPLOAD (funktioniert in React Native)
-      const { data: uploadData, error: uploadError } = await supabase
-        .storage
-        .from('videos')
-        .upload(videoName, uint8Array, {
-          contentType: 'video/mp4',
-          upsert: false,
-        });
+      // 🔥 FIX: Blob-basierter Upload (React Native kompatibel)
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase Config fehlt');
+      }
+      
+      console.log('📤 Lade Video als Blob...');
+      console.log('📱 Platform:', Platform.OS);
+      console.log('📍 Video URI:', videoUri);
+      
+      setUploadProgress('Video wird hochgeladen...');
+      
+      // Video-Datei als Blob laden
+      let videoBlob: Blob;
+      try {
+        console.log('🔄 Fetching video blob...');
+        const blobResponse = await fetch(videoUri);
+        console.log('✅ Blob fetch response:', blobResponse.status, blobResponse.statusText);
+        videoBlob = await blobResponse.blob();
+        console.log('📦 Blob Größe:', (videoBlob.size / 1024 / 1024).toFixed(2), 'MB');
+        console.log('📦 Blob Type:', videoBlob.type);
+      } catch (blobError: any) {
+        console.error('❌ Blob Fetch Error:', blobError);
+        console.error('❌ Blob Error Message:', blobError.message);
+        throw new Error(`Video konnte nicht gelesen werden: ${blobError.message}`);
+      }
+      
+      // Upload mit PUT (Supabase Storage Standard)
+      console.log('📤 Starte Upload zu Supabase Storage...');
+      console.log('🌐 URL:', `${supabaseUrl}/storage/v1/object/videos/${videoName}`);
+      console.log('📦 Blob Size:', videoBlob.size, 'bytes');
+      
+      const uploadResponse = await fetch(
+        `${supabaseUrl}/storage/v1/object/videos/${videoName}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'video/mp4',
+            'x-upsert': 'false', // iOS Fix: Explizit false setzen
+          },
+          body: videoBlob,
+        }
+      );
       
       const uploadDuration = ((Date.now() - uploadStartTime) / 1000).toFixed(2);
       console.log(`⏱️ Upload-Dauer: ${uploadDuration}s`);
+      console.log(`📊 Upload Status: ${uploadResponse.status} ${uploadResponse.statusText}`);
       
-      if (uploadError) {
-        console.error('❌ Storage Upload Fehler:', uploadError);
-        throw new Error(uploadError.message || 'Upload fehlgeschlagen');
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('❌ STORAGE UPLOAD FEHLER:');
+        console.error('Status:', uploadResponse.status);
+        console.error('Response:', errorText);
+        console.error('URL:', `${supabaseUrl}/storage/v1/object/videos/${videoName}`);
+        console.error('Method: PUT');
+        console.error('Headers:', {
+          'Authorization': `Bearer ${supabaseKey?.substring(0, 20)}...`,
+          'Content-Type': 'video/mp4',
+        });
+        Alert.alert(
+          '❌ Upload fehlgeschlagen',
+          `Storage Upload Error (${uploadResponse.status})\n\n${errorText}\n\nBitte Screenshot machen und Support kontaktieren!`,
+          [{ text: 'OK' }]
+        );
+        throw new Error(`Storage Upload fehlgeschlagen (${uploadResponse.status}): ${errorText}`);
       }
       
+      const uploadData = await uploadResponse.json();
       console.log('✅ Upload erfolgreich:', uploadData);
       setUploadProgress('Video wird in Datenbank gespeichert...');
 
@@ -333,16 +479,79 @@ function UploadScreenProtected() {
         throw new Error('Fehler beim Generieren der Public URL');
       }
 
+      // 🚀 OPTIONAL: Upload zu Cloudflare Stream (parallele Kompression)
+      let cloudflareVideoId: string | null = null;
+      let cloudflarePlaybackUrl: string | null = null;
+      let cloudflareThumbnailUrl: string | null = null;
+      
+      try {
+        console.log('☁️ Prüfe Cloudflare Stream Konfiguration...');
+        const { cloudflareStream } = await import('@/lib/cloudflare-stream');
+        
+        if (cloudflareStream.isConfigured()) {
+          console.log('☁️ Cloudflare konfiguriert - starte Direct Upload...');
+          setUploadProgress('Erstelle Cloudflare Upload-Link...');
+          
+          // Schritt 1: Direct Upload URL erstellen
+          const directUpload = await cloudflareStream.createDirectUpload({
+            maxDurationSeconds: 7200,
+            metadata: { name: videoName },
+            requireSignedURLs: false,
+            allowedOrigins: ['*'],
+          });
+          
+          console.log('✅ Cloudflare Upload URL erstellt');
+          console.log('🆔 Video UID:', directUpload.result.uid);
+          
+          cloudflareVideoId = directUpload.result.uid;
+          
+          setUploadProgress('Upload zu Cloudflare (komprimiert)...');
+          
+          // Schritt 2: Video hochladen
+          const uploadResponse = await fetch(directUpload.result.uploadURL, {
+            method: 'POST',
+            body: videoBlob,
+          });
+          
+          if (uploadResponse.ok) {
+            console.log('✅ Cloudflare Upload erfolgreich!');
+            cloudflarePlaybackUrl = cloudflareStream.getPlaybackUrl(cloudflareVideoId);
+            cloudflareThumbnailUrl = cloudflareStream.getThumbnailUrl(cloudflareVideoId);
+            console.log('🔗 Playback URL:', cloudflarePlaybackUrl);
+            console.log('🖼️ Thumbnail URL:', cloudflareThumbnailUrl);
+          } else {
+            const errorText = await uploadResponse.text();
+            console.warn('⚠️ Cloudflare Upload fehlgeschlagen:', uploadResponse.status, errorText);
+            cloudflareVideoId = null;
+          }
+        } else {
+          console.log('ℹ️ Cloudflare nicht konfiguriert - nur Supabase Upload');
+        }
+      } catch (cloudflareError: any) {
+        console.warn('⚠️ Cloudflare Upload Error (ignoriert):', cloudflareError.message);
+        // Fehler ignorieren - Supabase Upload war erfolgreich
+        cloudflareVideoId = null;
+      }
+
       // Video-Eintrag in Datenbank erstellen
       console.log('💾 Erstelle Datenbank-Eintrag...');
+      
+      // 🔥 iOS FIX: Verwende User direkt aus Auth-Context statt getSession()
+      if (!authUser?.id) {
+        console.error('❌ Kein User im Auth-Context gefunden!');
+        throw new Error('Nicht authentifiziert - bitte erneut anmelden');
+      }
+      
+      console.log('👤 User ID aus Auth-Context:', authUser.id);
+      
       const insertData = {
-        video_url: publicUrl,
-        thumbnail_url: publicUrl,
-        description: description,
+        user_id: authUser.id,
+        video_url: cloudflarePlaybackUrl || publicUrl, // ✨ Cloudflare wenn verfügbar, sonst Supabase
+        thumbnail_url: cloudflareThumbnailUrl || publicUrl, // ✨ Cloudflare Thumbnail
+        description: description || '',
         visibility: visibility,
-        duration: 0,
-        status: 'ready', // Wichtig: Status setzen
-        is_public: visibility === 'public', // Für RLS-Policy
+        status: 'ready',
+        is_public: visibility === 'public',
         is_market_item: isForMarket,
         market_category: isForMarket ? selectedCategory : null,
         market_subcategory: isForMarket ? selectedSubcategory : null,
@@ -354,34 +563,80 @@ function UploadScreenProtected() {
         location_postcode: isForMarket && selectedLocation ? selectedLocation.postcode : null,
       };
       
-      console.log('📝 Insert-Daten:', JSON.stringify(insertData, null, 2));
+      // Log welche URLs verwendet werden
+      console.log('📺 Video URL:', insertData.video_url);
+      console.log('🖼️ Thumbnail URL:', insertData.thumbnail_url);
+      if (cloudflareVideoId) {
+        console.log('☁️ Cloudflare Video ID:', cloudflareVideoId);
+        console.log('✨ Nutze Cloudflare URLs (komprimiert & schnell)');
+      } else {
+        console.log('📦 Nutze Supabase URLs (Original)');
+      }
       
-      const { data: videoData, error: dbError } = await supabase
-        .from('videos')
-        .insert(insertData)
-        .select()
-        .single();
-
-      if (dbError) {
-        console.error('❌ Datenbank Fehler:', dbError);
-        console.error('❌ DB Error Code:', dbError.code);
-        console.error('❌ DB Error Details:', dbError.details);
-        console.error('❌ DB Error Hint:', dbError.hint);
+      console.log('📝 Starte INSERT (direkt via REST API)...');
+      console.log('📋 INSERT Daten:', JSON.stringify(insertData, null, 2));
+      
+      // 🔥 iOS FIX: Direkter REST API Call statt Supabase JS Client
+      // Grund: supabase.from().insert() und supabase.auth.getSession() hängen auf iOS
+      console.log('🔄 Führe direkten REST API Call durch...');
+      
+      try {
+        // 🔥 iOS FIX: Hole Access Token aus Auth-Context statt getSession()
+        const accessToken = authState.session?.access_token;
         
-        // Bessere Fehlermeldung
-        let dbErrorMsg = dbError.message;
-        if (dbError.message?.includes('column') && dbError.message?.includes('does not exist')) {
-          dbErrorMsg = `Datenbank-Schema-Fehler: Ein Feld fehlt in der videos Tabelle.\n\nBitte führe diese Migration aus:\nsupabase/migrations/20251124_fix_video_upload_schema.sql\n\nFehler: ${dbError.message}`;
-        } else if (dbError.code === 'PGRST116') {
-          dbErrorMsg = `RLS-Policy-Fehler: Keine Berechtigung zum Erstellen von Videos.\n\nBitte prüfe die Row Level Security Policies in Supabase.\n\nFehler: ${dbError.message}`;
+        if (!accessToken) {
+          console.error('❌ Kein Access Token in Auth-Context gefunden');
+          console.error('Auth State:', JSON.stringify(authState, null, 2));
+          throw new Error('Keine Authentifizierung gefunden - bitte neu anmelden');
         }
         
-        Alert.alert('Datenbank-Fehler', dbErrorMsg);
-        throw dbError;
+        console.log('🔑 Access Token aus Context vorhanden:', accessToken.substring(0, 20) + '...');
+        
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_SUPABASE_URL}/rest/v1/videos`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+              'Authorization': `Bearer ${accessToken}`,
+              'Prefer': 'return=minimal' // Keine Daten zurückgeben für Performance
+            },
+            body: JSON.stringify(insertData)
+          }
+        );
+        
+        console.log('📡 REST API Response Status:', response.status);
+        console.log('📡 REST API Response OK:', response.ok);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ REST API Fehler:', errorText);
+          
+          Alert.alert(
+            '⚠️ Teilweise erfolgreich',
+            `Dein Video wurde hochgeladen, konnte aber nicht in der Datenbank gespeichert werden.\n\n` +
+            `Status: ${response.status}\n` +
+            `Fehler: ${errorText}`,
+            [{ text: 'OK' }]
+          );
+          
+          throw new Error(`REST API Insert fehlgeschlagen: ${response.status} - ${errorText}`);
+        }
+        
+        console.log('✅ REST API INSERT erfolgreich!');
+        console.log('🔗 Video URL:', publicUrl);
+        
+      } catch (error: any) {
+        console.error('❌ REST API Fehler:', error);
+        console.error('❌ Error Message:', error.message);
+        throw error;
       }
-
-      console.log('✅ Video in Datenbank gespeichert:', videoData);
-      console.log('🆔 Video ID:', videoData.id);
+      
+      const videoData = {
+        video_url: publicUrl,
+        user_id: authUser.id
+      };
 
       // 🔥 AI Content Moderation - TEMPORÄR DEAKTIVIERT für Upload-Fix
       // TODO: Moderation später in Background-Job ausführen (Supabase Edge Function)
@@ -425,8 +680,9 @@ function UploadScreenProtected() {
               setSelectedCategory(null);
               setSelectedSubcategory(null);
               
-              // Zur Startseite navigieren
-              router.replace('/');
+              // Zur Startseite navigieren UND Feed aktualisieren
+              console.log('🔄 Navigiere zum Feed und aktualisiere...');
+              router.replace('/?refresh=true');
             }
           }
         ]
@@ -867,7 +1123,16 @@ Du kannst auch #hashtags und @mentions verwenden"
             styles.publishButton,
             (uploading || !videoUri) && styles.publishButtonDisabled
           ]}
-          onPress={uploadVideo}
+          onPress={() => {
+            console.log('🔘 Publish Button gedrückt - Platform:', Platform.OS);
+            console.log('🔘 uploading:', uploading);
+            console.log('🔘 videoUri:', videoUri);
+            if (!uploading && videoUri) {
+              uploadVideo();
+            } else {
+              console.warn('⚠️ Upload blockiert - uploading:', uploading, 'videoUri:', !!videoUri);
+            }
+          }}
           disabled={uploading || !videoUri}
           activeOpacity={0.8}
         >

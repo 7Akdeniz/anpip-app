@@ -178,10 +178,13 @@ export async function getVideoGiftCount(videoId: string): Promise<number> {
       .select('*', { count: 'exact', head: true })
       .eq('video_id', videoId);
 
-    if (error) throw error;
+    if (error) {
+      // Tabelle existiert noch nicht - still fail (kein Fehler werfen)
+      return 0;
+    }
     return count || 0;
   } catch (error) {
-    console.error('Get gift count error:', error);
+    // Gift-System noch nicht aktiv - kein Problem
     return 0;
   }
 }

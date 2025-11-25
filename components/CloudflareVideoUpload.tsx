@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
+import { VIDEO_LIMITS } from '@/config/video-limits';
 
 interface CloudflareVideoUploadProps {
   onUploadComplete?: (videoId: string) => void;
@@ -48,6 +49,24 @@ export default function CloudflareVideoUpload({
       if (result.canceled) return;
 
       const video = result.assets[0];
+      
+      // Validierung: Größe und Dauer
+      if (video.fileSize) {
+        const validation = VIDEO_LIMITS.validate({ sizeBytes: video.fileSize });
+        if (!validation.valid) {
+          Alert.alert('Upload nicht möglich', validation.error || 'Datei zu groß');
+          return;
+        }
+      }
+
+      if (video.duration) {
+        const durationSeconds = video.duration / 1000; // ms → s
+        const validation = VIDEO_LIMITS.validate({ durationSeconds });
+        if (!validation.valid) {
+          Alert.alert('Upload nicht möglich', validation.error || 'Video zu lang');
+          return;
+        }
+      }
       
       // 3. Prüfe ob User eingeloggt ist
       const { data: { session } } = await supabase.auth.getSession();

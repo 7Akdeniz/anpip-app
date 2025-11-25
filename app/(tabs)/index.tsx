@@ -145,6 +145,22 @@ export default function FeedScreen() {
     registerSeekHandler((progressValue) => seekToCurrentVideo(progressValue));
     return () => registerSeekHandler(null);
   }, [registerSeekHandler, seekToCurrentVideo]);
+
+  // Auto-Refresh bei URL Parameter ?refresh=true
+  useEffect(() => {
+    const checkRefreshParam = async () => {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('refresh') === 'true') {
+          console.log('🔄 Feed Auto-Refresh triggered!');
+          await loadVideos(false, true);
+          // Parameter entfernen nach Refresh
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }
+    };
+    checkRefreshParam();
+  }, []);
   
   // Modal States
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -188,15 +204,15 @@ export default function FeedScreen() {
   
   const { videoWidth, videoHeight, isMobile, isTablet, isDesktop } = videoDimensions;
 
-  const loadVideos = useCallback(async (loadMore = false) => {
-    if (loadingMoreRef.current) return;
+  const loadVideos = useCallback(async (loadMore = false, forceRefresh = false) => {
+    if (loadingMoreRef.current && !forceRefresh) return;
     
     loadingMoreRef.current = true;
     const currentPage = loadMore ? page : 0;
     const BATCH_SIZE = 20; // Kleinere Batches für schnelleres Laden
     
     try {
-      console.log('📥 Lade Videos...', 'Tab:', activeTab, 'Seite:', currentPage);
+      console.log('📥 Lade Videos...', 'Tab:', activeTab, 'Seite:', currentPage, 'Force Refresh:', forceRefresh);
       
       // Teste ZUERST die Verbindung
       const connectionTest = await supabase.from('videos').select('id').limit(1);
@@ -306,12 +322,12 @@ export default function FeedScreen() {
         })));
       }
 
-      // Gift-Daten PARALLEL laden (viel schneller!)
+      // Gift-Daten PARALLEL laden (viel schneller!) - MIT ERROR HANDLING
       if (processedVideos.length > 0) {
         const giftDataPromises = processedVideos.map(video =>
           Promise.all([
-            getVideoGiftCount(video.id),
-            getLastGiftSender(video.id)
+            getVideoGiftCount(video.id).catch(() => 0),
+            getLastGiftSender(video.id).catch(() => null)
           ]).then(([giftCount, lastGiftSender]) => ({
             id: video.id,
             giftCount,
@@ -319,16 +335,21 @@ export default function FeedScreen() {
           }))
         );
         
-        const giftData = await Promise.all(giftDataPromises);
-        
-        // Gift-Daten zu Videos hinzufügen
-        processedVideos.forEach(video => {
-          const data = giftData.find(d => d.id === video.id);
-          if (data) {
-            video.gifts_count = data.giftCount;
-            video.last_gift_sender = data.lastGiftSender;
-          }
-        });
+        try {
+          const giftData = await Promise.all(giftDataPromises);
+          
+          // Gift-Daten zu Videos hinzufügen
+          processedVideos.forEach(video => {
+            const data = giftData.find(d => d.id === video.id);
+            if (data) {
+              video.gifts_count = data.giftCount;
+              video.last_gift_sender = data.lastGiftSender;
+            }
+          });
+        } catch (error) {
+          // Gift-System fehlt - kein Problem, einfach überspringen
+          console.log('⚠️ Gift-System nicht verfügbar (wird übersprungen)');
+        }
       }
 
       if (processedVideos.length > 0) {
@@ -391,7 +412,25 @@ export default function FeedScreen() {
     
     // Lade User-Daten (Likes, Follows, Saved Videos)
     loadUserData();
-    loadVideos();
+    
+    // Prüfe ob wir vom Upload kommen (refresh=true)
+    const checkRefreshParam = async () => {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('refresh') === 'true') {
+          console.log('🔄 Refresh-Parameter erkannt - lade Feed neu...');
+          // Entferne Parameter aus URL
+          window.history.replaceState({}, '', window.location.pathname);
+          // Lade Videos neu
+          await loadVideos(false);
+          return;
+        }
+      }
+      // Normale Initialisierung
+      loadVideos();
+    };
+    
+    checkRefreshParam();
   }, []);
 
   useEffect(() => {
@@ -447,7 +486,7 @@ export default function FeedScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setPage(0);
-    setVideos([]);
+    // NICHT die Videos leeren während Refresh - verhindert "Keine Videos" Flackern
     loadVideos(false);
   }, [loadVideos]);
 
@@ -867,6 +906,10 @@ export default function FeedScreen() {
             useNativeControls={false}
             isMuted={false}
             volume={1.0}
+            // 🚀 PERFORMANCE: Preload nächstes/vorheriges Video
+            progressUpdateIntervalMillis={250}
+            positionMillis={0}
+            // 🚀 END PERFORMANCE
             onPlaybackStatusUpdate={(status: AVPlaybackStatus) => {
               if (!status.isLoaded) return;
 
@@ -1185,8 +1228,27 @@ export default function FeedScreen() {
             viewabilityConfig={viewabilityConfig}
             onEndReached={onEndReached}
             onEndReachedThreshold={0.5}
+            // 🚀 PERFORMANCE OPTIMIZATIONS (TikTok-Style)
+            initialNumToRender={1}
+            maxToRenderPerBatch={2}
+            windowSize={3}
+            removeClippedSubviews={Platform.OS === 'android'}
+            updateCellsBatchingPeriod={50}
+            // 🚀 END PERFORMANCE OPTIMIZATIONS
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl 
+                refreshing={refreshing} 
+                onRefresh={onRefresh}
+                tintColor="rgba(255, 255, 255, 0.9)"
+                titleColor="rgba(255, 255, 255, 0.9)"
+                colors={['rgba(255, 255, 255, 0.9)']}
+                progressBackgroundColor="rgba(0, 0, 0, 0)"
+                progressViewOffset={0}
+                style={{ 
+                  backgroundColor: 'transparent',
+                  opacity: 1,
+                }}
+              />
             }
             ListFooterComponent={
               hasMore && !loading ? (
