@@ -284,5 +284,14 @@
       "source": "/robots.txt",
       "destination": "/api/robots"
     }
+    ,
+    {
+      "source": "/rest/:path*",
+      "destination": "https://vlibyocpdguxpretjvnz.supabase.co/rest/v1/:path*"
+    },
+    {
+      "source": "/functions/:path*",
+      "destination": "https://vlibyocpdguxpretjvnz.supabase.co/functions/v1/:path*"
+    }
   ]
 }
