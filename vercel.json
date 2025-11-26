@@ -286,11 +286,11 @@
     }
     ,
     {
-      "source": "/rest/:path*",
+      "source": "/rest/v1/:path*",
       "destination": "https://vlibyocpdguxpretjvnz.supabase.co/rest/v1/:path*"
     },
     {
-      "source": "/functions/:path*",
+      "source": "/functions/v1/:path*",
       "destination": "https://vlibyocpdguxpretjvnz.supabase.co/functions/v1/:path*"
     }
   ]
