@@ -370,7 +370,7 @@ export default function VideoEditorScreen() {
       (!selectedLocation ||
         !selectedCategory ||
         !selectedSubcategory ||
-        !description)
+        description.trim() === "")
     ) {
       Alert.alert(
         "Fehlende Daten",
@@ -381,15 +381,42 @@ export default function VideoEditorScreen() {
 
     setUploading(true);
 
-    // Simulate upload with progress
-    for (let i = 0; i <= 100; i += 10) {
-      setUploadProgress(i);
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    }
+    try {
+      // Simulate upload with progress
+      for (let i = 0; i <= 100; i += 10) {
+        setUploadProgress(i);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
 
-    setUploading(false);
-    Alert.alert("Erfolg!", "Video wurde hochgeladen");
-    router.push("/(tabs)");
+      setUploading(false);
+      Alert.alert("Erfolg!", "Video wurde hochgeladen");
+      router.push("/(tabs)");
+    } catch (error) {
+      setUploading(false);
+      Alert.alert("Fehler", "Beim Hochladen ist ein Fehler aufgetreten. Bitte versuche es erneut.");
+    }
+  };
+
+  const handleToolAction = (toolId: string) => {
+    switch (toolId) {
+      case "trim":
+        Alert.alert("Schneiden", "Schneide dein Video hier.");
+        break;
+      case "text":
+        Alert.alert("Text", "Füge Text zu deinem Video hinzu.");
+        break;
+      case "sticker":
+        Alert.alert("Sticker", "Füge Sticker zu deinem Video hinzu.");
+        break;
+      case "filter":
+        Alert.alert("Filter", "Wende Filter auf dein Video an.");
+        break;
+      case "beauty":
+        Alert.alert("Beauty", "Wende Beauty-Effekte auf dein Video an.");
+        break;
+      default:
+        Alert.alert("Unbekanntes Tool", "Diese Aktion ist nicht verfügbar.");
+    }
   };
 
   const progress = duration > 0 ? position / duration : 0;
@@ -720,9 +747,10 @@ export default function VideoEditorScreen() {
               styles.toolButton,
               selectedTool === tool.id && styles.toolButtonActive,
             ]}
-            onPress={() =>
-              setSelectedTool(tool.id === selectedTool ? null : tool.id)
-            }
+            onPress={() => {
+              setSelectedTool(tool.id === selectedTool ? null : tool.id);
+              handleToolAction(tool.id);
+            }}
             accessibilityLabel={tool.label}
           >
             <View style={styles.toolContainer}>
