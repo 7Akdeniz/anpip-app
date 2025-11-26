@@ -40,7 +40,7 @@
       ]
     },
     {
-      "source": "/api/video/**",
+      "source": "/api/video/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -61,7 +61,7 @@
       ]
     },
     {
-      "source": "/api/thumbnail/**",
+      "source": "/api/thumbnail/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -78,7 +78,7 @@
       ]
     },
     {
-      "source": "/**/*.m3u8",
+      "source": "/(.*)\\.m3u8",
       "headers": [
         {
           "key": "Cache-Control",
@@ -95,7 +95,7 @@
       ]
     },
     {
-      "source": "/**/*.ts",
+      "source": "/(.*)\\.ts",
       "headers": [
         {
           "key": "Cache-Control",
@@ -112,7 +112,7 @@
       ]
     },
     {
-      "source": "/**/*.m4s",
+      "source": "/(.*)\\.m4s",
       "headers": [
         {
           "key": "Cache-Control",
