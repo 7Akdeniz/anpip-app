@@ -6,21 +6,25 @@
  * WICHTIG: Dieser Screen ist AUTH-PROTECTED - User muss angemeldet sein
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert, ActivityIndicator, TouchableOpacity, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
 import { Typography, PrimaryButton } from '@/components/ui';
 import { Colors, Spacing, BorderRadius } from '@/constants/Theme';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Video, Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
+import Slider from '@react-native-community/slider';
+import { Video, Audio, ResizeMode } from 'expo-av';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { LocationAutocomplete, Location } from '@/components/LocationAutocomplete';
 import { useLocation } from '@/contexts/LocationContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMusic } from '@/contexts/MusicContext';
 import { autoModerateVideo } from '@/lib/moderation-engine';
 import { VIDEO_LIMITS } from '@/config/video-limits';
 
@@ -150,6 +154,15 @@ const MARKET_CATEGORIES = [
   },
 ];
 
+type CropPreset = 'auto' | 'portrait' | 'square' | 'cinematic';
+
+const CROP_PRESETS: { id: CropPreset; label: string; ratio?: number; helper: string }[] = [
+  { id: 'auto', label: 'Original', helper: 'Volle Auflösung' },
+  { id: 'portrait', label: '9:16', ratio: 9 / 16, helper: 'TikTok / Reels' },
+  { id: 'square', label: '1:1', ratio: 1, helper: 'Feed / Galerie' },
+  { id: 'cinematic', label: '16:9', ratio: 16 / 9, helper: 'YouTube / Stories' },
+];
+
 export default function UploadScreen() {
   const { checkAuth, isAuthenticated } = useRequireAuth();
   const router = useRouter();
@@ -184,9 +197,18 @@ function UploadScreenProtected() {
   console.log('📱 UploadScreenProtected geladen - Platform:', Platform.OS);
   
   const router = useRouter();
+  const params = useLocalSearchParams(); // Receive params from video-editor
   const { userLocation } = useLocation(); // Nutze globalen Location-Context
   const { user: authUser } = useRequireAuth(); // 🔥 iOS FIX: Hole User aus Auth-Context
   const { state: authState } = useAuth(); // 🔥 iOS FIX: Hole Session aus Auth-Context
+  
+  // Optional: Musik-Context (falls verfügbar)
+  let musicContext: any = null;
+  try {
+    musicContext = useMusic();
+  } catch (e) {
+    console.log('⚠️ MusicProvider nicht verfügbar - Musik-Features deaktiviert');
+  }
   
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [description, setDescription] = useState('');
@@ -197,6 +219,52 @@ function UploadScreenProtected() {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [videoDuration, setVideoDuration] = useState(30); // Demo: 30 Sekunden
+  const [trimStart, setTrimStart] = useState(0);
+  const [trimEnd, setTrimEnd] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [cropPreset, setCropPreset] = useState<CropPreset>('auto');
+  const [editedVideoUri, setEditedVideoUri] = useState<string | null>(null);
+  const [isProcessingEdit, setIsProcessingEdit] = useState(false);
+  const [naturalSize, setNaturalSize] = useState({ width: 1080, height: 1920 }); // Demo: 9:16
+  const [lastAppliedEdit, setLastAppliedEdit] = useState({
+    start: 0,
+    end: 1,
+    crop: 'auto' as CropPreset,
+    muted: false,
+  });
+  const videoRef = useRef<Video>(null);
+  const [showEditingDemo, setShowEditingDemo] = useState(true); // NEU: Demo-Modus
+  const [selectedMusic, setSelectedMusic] = useState<string | null>(null); // Musik vom Editor
+  const previewUri = editedVideoUri || videoUri;
+  const MIN_TRIM_SECONDS = 1;
+
+  // Receive video + music from editor
+  useEffect(() => {
+    if (params.videoUri && typeof params.videoUri === 'string') {
+      console.log('📥 Video vom Editor empfangen:', params.videoUri);
+      setVideoUri(params.videoUri);
+    }
+    if (params.selectedMusic && typeof params.selectedMusic === 'string') {
+      console.log('🎵 Musik vom Editor empfangen:', params.selectedMusic);
+      setSelectedMusic(params.selectedMusic);
+    }
+  }, [params]);
+
+  // Debug: Log Video State
+  useEffect(() => {
+    console.log('🎬 Video State:', {
+      hasVideoUri: !!videoUri,
+      hasEditedVideoUri: !!editedVideoUri,
+      hasPreviewUri: !!previewUri,
+      videoDuration,
+      trimStart,
+      trimEnd,
+      cropPreset,
+      isMuted,
+      selectedMusic
+    });
+  }, [videoUri, editedVideoUri, previewUri, videoDuration, trimStart, trimEnd, cropPreset, isMuted, selectedMusic]);
 
   // Auto-Fill Location beim Aktivieren des Market-Modus
   useEffect(() => {
@@ -214,6 +282,13 @@ function UploadScreenProtected() {
       console.log('📍 Standort automatisch vorausgefüllt:', autoLocation);
     }
   }, [isForMarket, userLocation]);
+
+  const openVideoEditor = (uri: string) => {
+    router.push({
+      pathname: '/video-editor',
+      params: { videoUri: uri }
+    });
+  };
 
   const pickVideo = async () => {
     console.log('📹 pickVideo() aufgerufen - Platform:', Platform.OS);
@@ -273,9 +348,127 @@ function UploadScreenProtected() {
       
       // Video akzeptieren - Dauer wird später beim Upload geprüft
       setVideoUri(asset.uri);
+      setEditedVideoUri(null);
+      setTrimStart(0);
+      setTrimEnd(1);
+      setIsMuted(false);
+      setCropPreset('auto');
+      setLastAppliedEdit({ start: 0, end: 1, crop: 'auto', muted: false });
+      setNaturalSize({ width: asset.width || 0, height: asset.height || 0 });
       console.log('✅ Video ausgewählt (Dauer wird beim Upload validiert)');
+      
+      // Öffne TikTok-Style Editor
+      openVideoEditor(asset.uri);
     }
   };
+
+  const formatTrimLabel = (value: number) => {
+    if (!videoDuration || Number.isNaN(value)) {
+      return '0:00';
+    }
+
+    const seconds = Math.max(0, value * videoDuration);
+    const minutes = Math.floor(seconds / 60);
+    const remaining = Math.round(seconds % 60);
+    return `${minutes}:${remaining.toString().padStart(2, '0')}`;
+  };
+
+  const trimGap = useMemo(() => {
+    if (!videoDuration || MIN_TRIM_SECONDS <= 0) {
+      return 0;
+    }
+    return Math.min(1, MIN_TRIM_SECONDS / Math.max(videoDuration, MIN_TRIM_SECONDS));
+  }, [videoDuration]);
+
+  const handleTrimStartChange = (value: number) => {
+    const maxStart = Math.max(0, Math.min(value, trimEnd - trimGap));
+    setTrimStart(maxStart);
+  };
+
+  const handleTrimEndChange = (value: number) => {
+    const minEnd = Math.min(1, Math.max(value, trimStart + trimGap));
+    setTrimEnd(minEnd);
+  };
+
+  const cropFilter = useMemo(() => {
+    const preset = CROP_PRESETS.find(item => item.id === cropPreset);
+    if (!preset?.ratio || naturalSize.width === 0 || naturalSize.height === 0) {
+      return '';
+    }
+
+    const width = naturalSize.width;
+    const height = naturalSize.height;
+    const ratio = preset.ratio;
+    const sourceRatio = width / height;
+
+    let cropWidth = width;
+    let cropHeight = height;
+
+    if (sourceRatio > ratio) {
+      cropHeight = height;
+      cropWidth = Math.round(cropHeight * ratio);
+    } else {
+      cropWidth = width;
+      cropHeight = Math.round(cropWidth / ratio);
+    }
+
+    const cropX = Math.max(0, Math.floor((width - cropWidth) / 2));
+    const cropY = Math.max(0, Math.floor((height - cropHeight) / 2));
+
+    if (cropWidth <= 0 || cropHeight <= 0) {
+      return '';
+    }
+
+    return `crop=${cropWidth}:${cropHeight}:${cropX}:${cropY}`;
+  }, [cropPreset, naturalSize]);
+
+  const isEditDirty = useMemo(() => {
+    return (
+      lastAppliedEdit.start !== trimStart ||
+      lastAppliedEdit.end !== trimEnd ||
+      lastAppliedEdit.crop !== cropPreset ||
+      lastAppliedEdit.muted !== isMuted
+    );
+  }, [trimStart, trimEnd, cropPreset, isMuted, lastAppliedEdit]);
+
+  const applyEdits = useCallback(async () => {
+    if (!previewUri || !videoDuration) {
+      Alert.alert('Video noch nicht bereit', 'Warte kurz auf die Vorschau, bevor du schneidest.');
+      return;
+    }
+
+    if (!isEditDirty) {
+      return;
+    }
+
+    // ⚠️ FFmpeg requires native modules - not available in Expo Go
+    // For now, just acknowledge the edit settings without processing
+    Alert.alert(
+      'Bearbeitung gespeichert',
+      'Deine Einstellungen wurden gespeichert. Video-Verarbeitung ist aktuell nur im Development Build verfügbar.\n\nDas Original-Video wird hochgeladen.',
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            setLastAppliedEdit({ start: trimStart, end: trimEnd, crop: cropPreset, muted: isMuted });
+          }
+        }
+      ]
+    );
+  }, [previewUri, videoDuration, isEditDirty, trimStart, trimEnd, cropPreset, isMuted]);
+
+  const handleRevertEdits = useCallback(async () => {
+    if (editedVideoUri) {
+      await FileSystem.deleteAsync(editedVideoUri, { idempotent: true }).catch(() => undefined);
+    }
+    setEditedVideoUri(null);
+    setTrimStart(0);
+    setTrimEnd(1);
+    setIsMuted(false);
+    setCropPreset('auto');
+    setLastAppliedEdit({ start: 0, end: 1, crop: 'auto', muted: false });
+    setVideoDuration(0);
+  }, [editedVideoUri]);
 
   const uploadVideo = async () => {
     console.log('🚀 uploadVideo() aufgerufen - Platform:', Platform.OS);
@@ -284,6 +477,8 @@ function UploadScreenProtected() {
       Alert.alert('Fehler', 'Bitte wähle zuerst ein Video aus.');
       return;
     }
+
+    const uploadSourceUri = editedVideoUri || videoUri;
 
     // Validierung für Market-Listings
     if (isForMarket) {
@@ -306,7 +501,7 @@ function UploadScreenProtected() {
     setUploadProgress('Video wird vorbereitet...');
 
     try {
-      console.log('🎬 Starte Upload...', videoUri);
+      console.log('🎬 Starte Upload...', uploadSourceUri);
       console.log('📋 Upload-Details:', {
         platform: Platform.OS,
         isForMarket,
@@ -331,7 +526,7 @@ function UploadScreenProtected() {
         const durationValidation = await Promise.race([
           (async () => {
             const { sound, status } = await Audio.Sound.createAsync(
-              { uri: videoUri },
+              { uri: uploadSourceUri },
               { shouldPlay: false }
             );
             
@@ -403,68 +598,95 @@ function UploadScreenProtected() {
       
       console.log('📤 Lade Video als Blob...');
       console.log('📱 Platform:', Platform.OS);
-      console.log('📍 Video URI:', videoUri);
+      console.log('📍 Upload Quelle:', uploadSourceUri);
       
       setUploadProgress('Video wird hochgeladen...');
       
-      // Video-Datei als Blob laden
-      let videoBlob: Blob;
+      // 🚀 Verwende XMLHttpRequest für große Datei-Uploads (React Native kompatibel)
       try {
-        console.log('🔄 Fetching video blob...');
-        const blobResponse = await fetch(videoUri);
-        console.log('✅ Blob fetch response:', blobResponse.status, blobResponse.statusText);
-        videoBlob = await blobResponse.blob();
-        console.log('📦 Blob Größe:', (videoBlob.size / 1024 / 1024).toFixed(2), 'MB');
-        console.log('📦 Blob Type:', videoBlob.type);
-      } catch (blobError: any) {
-        console.error('❌ Blob Fetch Error:', blobError);
-        console.error('❌ Blob Error Message:', blobError.message);
-        throw new Error(`Video konnte nicht gelesen werden: ${blobError.message}`);
-      }
-      
-      // Upload mit PUT (Supabase Storage Standard)
-      console.log('📤 Starte Upload zu Supabase Storage...');
-      console.log('🌐 URL:', `${supabaseUrl}/storage/v1/object/videos/${videoName}`);
-      console.log('📦 Blob Size:', videoBlob.size, 'bytes');
-      
-      const uploadResponse = await fetch(
-        `${supabaseUrl}/storage/v1/object/videos/${videoName}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'video/mp4',
-            'x-upsert': 'false', // iOS Fix: Explizit false setzen
-          },
-          body: videoBlob,
-        }
-      );
-      
-      const uploadDuration = ((Date.now() - uploadStartTime) / 1000).toFixed(2);
-      console.log(`⏱️ Upload-Dauer: ${uploadDuration}s`);
-      console.log(`📊 Upload Status: ${uploadResponse.status} ${uploadResponse.statusText}`);
-      
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('❌ STORAGE UPLOAD FEHLER:');
-        console.error('Status:', uploadResponse.status);
-        console.error('Response:', errorText);
-        console.error('URL:', `${supabaseUrl}/storage/v1/object/videos/${videoName}`);
-        console.error('Method: PUT');
-        console.error('Headers:', {
-          'Authorization': `Bearer ${supabaseKey?.substring(0, 20)}...`,
-          'Content-Type': 'video/mp4',
+        console.log('📤 Starte Upload zu Supabase Storage...');
+        console.log('🌐 URL:', `${supabaseUrl}/storage/v1/object/videos/${videoName}`);
+        console.log('📍 Upload Quelle:', uploadSourceUri);
+        
+        // Verwende XMLHttpRequest für Progress-Tracking und bessere Kontrolle
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const percent = Math.round((e.loaded / e.total) * 100);
+              console.log(`📊 Upload Progress: ${percent}%`);
+              setUploadProgress(`Upload läuft... ${percent}%`);
+            }
+          });
+          
+          xhr.addEventListener('load', () => {
+            const uploadDuration = ((Date.now() - uploadStartTime) / 1000).toFixed(2);
+            console.log(`⏱️ Upload-Dauer: ${uploadDuration}s`);
+            console.log(`📊 Upload Status: ${xhr.status}`);
+            
+            if (xhr.status >= 200 && xhr.status < 300) {
+              console.log('✅ Upload erfolgreich:', xhr.responseText);
+              resolve();
+            } else {
+              console.error('❌ STORAGE UPLOAD FEHLER:');
+              console.error('Status:', xhr.status);
+              console.error('Response:', xhr.responseText);
+              reject(new Error(`Storage Upload fehlgeschlagen (${xhr.status}): ${xhr.responseText}`));
+            }
+          });
+          
+          xhr.addEventListener('error', () => {
+            console.error('❌ XMLHttpRequest Error');
+            reject(new Error('Netzwerkfehler beim Upload'));
+          });
+          
+          xhr.addEventListener('timeout', () => {
+            console.error('❌ XMLHttpRequest Timeout');
+            reject(new Error('Upload-Timeout: Die Datei ist zu groß oder die Verbindung zu langsam'));
+          });
+          
+          xhr.addEventListener('abort', () => {
+            console.error('❌ XMLHttpRequest Aborted');
+            reject(new Error('Upload wurde abgebrochen'));
+          });
+          
+          // 10 Minuten Timeout für sehr große Dateien
+          xhr.timeout = 600000;
+          
+          xhr.open('PUT', `${supabaseUrl}/storage/v1/object/videos/${videoName}`);
+          xhr.setRequestHeader('Authorization', `Bearer ${supabaseKey}`);
+          xhr.setRequestHeader('Content-Type', 'video/mp4');
+          xhr.setRequestHeader('x-upsert', 'false');
+          
+          // React Native: Sende die Datei direkt über file:// URI
+          // FormData funktioniert in React Native anders als im Browser
+          const formData = new FormData();
+          formData.append('file', {
+            uri: uploadSourceUri,
+            type: 'video/mp4',
+            name: videoName,
+          } as any);
+          
+          // Für Supabase Storage: Sende direkt als Body (kein FormData)
+          // Wir müssen die Datei als Blob lesen
+          fetch(uploadSourceUri)
+            .then(res => res.blob())
+            .then(blob => {
+              console.log('📦 Blob Größe:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+              xhr.send(blob);
+            })
+            .catch(err => {
+              console.error('❌ Blob Read Error:', err);
+              reject(new Error(`Fehler beim Lesen der Video-Datei: ${err.message}`));
+            });
         });
-        Alert.alert(
-          '❌ Upload fehlgeschlagen',
-          `Storage Upload Error (${uploadResponse.status})\n\n${errorText}\n\nBitte Screenshot machen und Support kontaktieren!`,
-          [{ text: 'OK' }]
-        );
-        throw new Error(`Storage Upload fehlgeschlagen (${uploadResponse.status}): ${errorText}`);
+        
+      } catch (uploadError: any) {
+        console.error('❌ Upload Error:', uploadError);
+        throw new Error(`Upload fehlgeschlagen: ${uploadError.message}`);
       }
       
-      const uploadData = await uploadResponse.json();
-      console.log('✅ Upload erfolgreich:', uploadData);
       setUploadProgress('Video wird in Datenbank gespeichert...');
 
       // Public URL vom hochgeladenen Video
@@ -507,23 +729,37 @@ function UploadScreenProtected() {
           
           setUploadProgress('Upload zu Cloudflare (komprimiert)...');
           
-          // Schritt 2: Video hochladen
-          const uploadResponse = await fetch(directUpload.result.uploadURL, {
-            method: 'POST',
-            body: videoBlob,
+          // Schritt 2: Video hochladen mit XMLHttpRequest für große Dateien
+          await new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            
+            xhr.addEventListener('load', () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                console.log('✅ Cloudflare Upload erfolgreich!');
+                resolve();
+              } else {
+                console.warn('⚠️ Cloudflare Upload fehlgeschlagen:', xhr.status, xhr.responseText);
+                reject(new Error(`Cloudflare Upload failed: ${xhr.status}`));
+              }
+            });
+            
+            xhr.addEventListener('error', () => reject(new Error('Cloudflare Network Error')));
+            xhr.addEventListener('timeout', () => reject(new Error('Cloudflare Upload Timeout')));
+            
+            xhr.timeout = 600000; // 10 Minuten
+            xhr.open('POST', directUpload.result.uploadURL);
+            
+            // Lese Video als Blob und sende
+            fetch(uploadSourceUri)
+              .then(res => res.blob())
+              .then(blob => xhr.send(blob))
+              .catch(err => reject(err));
           });
           
-          if (uploadResponse.ok) {
-            console.log('✅ Cloudflare Upload erfolgreich!');
-            cloudflarePlaybackUrl = cloudflareStream.getPlaybackUrl(cloudflareVideoId);
-            cloudflareThumbnailUrl = cloudflareStream.getThumbnailUrl(cloudflareVideoId);
-            console.log('🔗 Playback URL:', cloudflarePlaybackUrl);
-            console.log('🖼️ Thumbnail URL:', cloudflareThumbnailUrl);
-          } else {
-            const errorText = await uploadResponse.text();
-            console.warn('⚠️ Cloudflare Upload fehlgeschlagen:', uploadResponse.status, errorText);
-            cloudflareVideoId = null;
-          }
+          cloudflarePlaybackUrl = cloudflareStream.getPlaybackUrl(cloudflareVideoId);
+          cloudflareThumbnailUrl = cloudflareStream.getThumbnailUrl(cloudflareVideoId);
+          console.log('🔗 Playback URL:', cloudflarePlaybackUrl);
+          console.log('🖼️ Thumbnail URL:', cloudflareThumbnailUrl);
         } else {
           console.log('ℹ️ Cloudflare nicht konfiguriert - nur Supabase Upload');
         }
@@ -673,6 +909,14 @@ function UploadScreenProtected() {
             onPress: () => {
               // Formular zurücksetzen
               setVideoUri(null);
+              setEditedVideoUri(null);
+              setVideoDuration(0);
+              setNaturalSize({ width: 0, height: 0 });
+              setTrimStart(0);
+              setTrimEnd(1);
+              setIsMuted(false);
+              setCropPreset('auto');
+              setLastAppliedEdit({ start: 0, end: 1, crop: 'auto', muted: false });
               setDescription('');
               setVisibility('public');
               setIsForMarket(false);
@@ -779,87 +1023,20 @@ function UploadScreenProtected() {
                 </View>
               </View>
             </View>
-          ) : videoUri ? (
-            <View style={styles.uploadCard}>
-              <View style={styles.videoPreview}>
-                <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
-                <Typography variant="h3" align="center" style={styles.videoSelectedTitle}>
-                  Video ausgewählt ✓
-                </Typography>
-                <TouchableOpacity style={styles.changeVideoButton} onPress={pickVideo}>
-                  <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                  <Typography variant="body" style={styles.changeVideoText}>
-                    Anderes Video wählen
-                  </Typography>
-                </TouchableOpacity>
-              </View>
-            </View>
           ) : (
-            <TouchableOpacity onPress={pickVideo} activeOpacity={0.8}>
-              <View style={styles.uploadCard}>
-                <View style={styles.uploadEmptyContent}>
-                  <View style={styles.uploadIconCircle}>
-                    <Ionicons name="cloud-upload-outline" size={48} color="#FFFFFF" />
-                  </View>
-                  <Typography variant="h3" align="center" style={styles.uploadTitle}>
-                    Video auswählen
-                  </Typography>
-                  <Typography variant="caption" align="center" style={styles.uploadSubtitle}>
-                    Tippe hier, um dein Video hochzuladen
-                  </Typography>
-                  
-                  {/* Feature Icons */}
-                  <View style={styles.featureIcons}>
-                    <View style={styles.featureItem}>
-                      <Ionicons name="time-outline" size={20} color={Colors.primary} />
-                      <Typography variant="caption" style={styles.featureText}>Max 60s</Typography>
-                    </View>
-                    <View style={styles.featureItem}>
-                      <Ionicons name="videocam-outline" size={20} color={Colors.primary} />
-                      <Typography variant="caption" style={styles.featureText}>HD Qualität</Typography>
-                    </View>
-                    <View style={styles.featureItem}>
-                      <Ionicons name="musical-notes-outline" size={20} color={Colors.primary} />
-                      <Typography variant="caption" style={styles.featureText}>Mit Sound</Typography>
-                    </View>
-                  </View>
-                </View>
-              </View>
+            <TouchableOpacity onPress={pickVideo} activeOpacity={0.8} style={styles.compactUploadButton}>
+              <LinearGradient
+                colors={['#00D9FF', '#B84FFF']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.compactUploadGradient}
+              >
+                <Ionicons name="videocam" size={22} color="#FFFFFF" />
+                <Typography variant="body" style={styles.compactUploadText}>Video auswählen</Typography>
+                <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
+              </LinearGradient>
             </TouchableOpacity>
           )}
-        </View>
-
-        {/* Quick Actions mit Icons */}
-        <View style={styles.quickActions}>
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity style={styles.quickActionCard} onPress={pickVideo}>
-              <View style={styles.quickActionIconCircle}>
-                <Ionicons name="images-outline" size={26} color="#FFFFFF" />
-              </View>
-              <Typography variant="caption" style={styles.quickActionLabel}>Galerie</Typography>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.quickActionCard}>
-              <View style={styles.quickActionIconCircle}>
-                <Ionicons name="camera-outline" size={26} color="#FFFFFF" />
-              </View>
-              <Typography variant="caption" style={styles.quickActionLabel}>Kamera</Typography>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.quickActionCard}>
-              <View style={styles.quickActionIconCircle}>
-                <Ionicons name="cut-outline" size={26} color="#FFFFFF" />
-              </View>
-              <Typography variant="caption" style={styles.quickActionLabel}>Schneiden</Typography>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.quickActionCard}>
-              <View style={styles.quickActionIconCircle}>
-                <Ionicons name="color-filter-outline" size={26} color="#FFFFFF" />
-              </View>
-              <Typography variant="caption" style={styles.quickActionLabel}>Filter</Typography>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Market Kategorie */}
@@ -1267,44 +1444,221 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   uploadEmptyContent: {
-    padding: Spacing.sm,
+    padding: 40,
     alignItems: 'center',
   },
   uploadIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    marginBottom: 24,
+    shadowColor: '#00D9FF',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
   },
   uploadTitle: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    letterSpacing: -0.5,
   },
   uploadSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    marginBottom: 20,
+  },
+  neonLine: {
+    width: 80,
+    height: 3,
+    backgroundColor: '#00D9FF',
+    borderRadius: 2,
+    marginBottom: 20,
+    shadowColor: '#00D9FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
   },
   featureIcons: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 16,
     marginTop: 12,
   },
   featureItem: {
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
+  },
+  featureIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 217, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 217, 255, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   featureText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  videoPreviewWrapper: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    marginBottom: 12,
+    position: 'relative',
+  },
+  previewVideo: {
+    width: '100%',
+    height: 220,
+    backgroundColor: '#000',
+  },
+  videoPlaceholder: {
+    width: '100%',
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#111',
+  },
+  previewBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  previewBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+  },
+  editPanel: {
+    padding: Spacing.sm,
+    backgroundColor: 'rgba(28,28,30,0.9)',
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: 'rgba(255,255,255,0.08)',
+    gap: 10,
+  },
+  trimInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  trimLabelText: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  trimSlider: {
+    width: '100%',
+    height: 36,
+  },
+  durationBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  durationText: {
     color: 'rgba(255,255,255,0.7)',
     fontSize: 10,
+  },
+  cropChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  cropChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    minWidth: 80,
+  },
+  cropChipActive: {
+    backgroundColor: 'rgba(139,92,246,0.25)',
+    borderColor: Colors.primary,
+  },
+  cropChipText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  cropChipTextActive: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  cropChipHelper: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 9,
+  },
+  editActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  volumeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  volumeToggleActive: {
+    borderColor: Colors.primary,
+    backgroundColor: 'rgba(0,217,255,0.1)',
+  },
+  volumeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  revertButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  revertButtonText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 11,
+  },
+  applyButton: {
+    marginTop: 6,
+    borderRadius: 14,
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  applyButtonDisabled: {
+    opacity: 0.45,
+  },
+  applyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
 
   // Quick Actions
@@ -1349,12 +1703,6 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
     paddingTop: 0,
     marginTop: 8,
-  },
-  sectionTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 6,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1627,5 +1975,227 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  selectVideoButtonTop: {
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  selectVideoGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  selectVideoText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  addMusicButton: {
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,217,255,0.2)',
+    padding: 16,
+  },
+  addMusicContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  addMusicTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  addMusicArtist: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  sectionTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  timelineContainer: {
+    marginBottom: 16,
+  },
+  timelineTrack: {
+    height: 8,
+    borderRadius: 8,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  timelineSegment: {
+    height: '100%',
+  },
+  timeLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  timeLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+  },
+  sliderRow: {
+    gap: 12,
+  },
+  sliderContainer: {
+    marginBottom: 12,
+  },
+  sliderLabel: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  trimSection: {
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+  },
+  trimHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  trimTitle: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  trimDuration: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  simpleTimeline: {
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 3,
+    marginBottom: 12,
+    position: 'relative',
+  },
+  timelineBar: {
+    position: 'absolute',
+    height: '100%',
+    backgroundColor: Colors.primary,
+    borderRadius: 3,
+  },
+  simpleSliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  timeText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    minWidth: 35,
+  },
+  formatSection: {
+    marginBottom: 16,
+  },
+  formatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  formatTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  audioToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  audioToggleText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  toggleSwitch: {
+    width: 40,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  toggleSwitchActive: {
+    backgroundColor: Colors.primary,
+  },
+  selectedMusicCard: {
+    marginTop: 16,
+  },
+  selectedMusicBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,217,255,0.3)',
+    gap: 12,
+  },
+  selectedMusicInfo: {
+    flex: 1,
+  },
+  selectedMusicLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  selectedMusicName: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  changeMusicButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  compactUploadButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  compactUploadGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  compactUploadText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 12,
+  },
 });
+
 

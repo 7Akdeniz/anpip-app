@@ -197,17 +197,13 @@ export default function VideoUpload({
   };
 
   /**
-   * Schritt 3: Video direkt zu Cloudflare hochladen (mit Progress-Tracking)
+   * Schritt 3: Video direkt zu Cloudflare hochladen (mit XMLHttpRequest)
    */
   const uploadToCloudflare = async (
     file: any,
     uploadUrl: string
   ): Promise<void> => {
     return new Promise((resolve, reject) => {
-      // AbortController für Cancel-Funktion
-      abortControllerRef.current = new AbortController();
-
-      // XMLHttpRequest für Progress-Tracking (fetch hat kein upload progress)
       const xhr = new XMLHttpRequest();
 
       // Progress Event
@@ -235,28 +231,23 @@ export default function VideoUpload({
         reject(new Error('Netzwerkfehler beim Upload'));
       });
 
-      // Abbruch
-      xhr.addEventListener('abort', () => {
-        reject(new Error('Upload abgebrochen'));
+      // Timeout
+      xhr.addEventListener('timeout', () => {
+        reject(new Error('Upload-Timeout'));
       });
 
-      // Upload starten
+      xhr.timeout = 600000; // 10 Minuten für große Videos
       xhr.open('POST', uploadUrl);
-      
-      // Form-Data mit Video-Datei
-      const formData = new FormData();
-      formData.append('file', {
-        uri: file.uri,
-        type: file.mimeType,
-        name: file.name,
-      } as any);
 
-      xhr.send(formData);
-
-      // Abort-Signal verknüpfen
-      abortControllerRef.current.signal.addEventListener('abort', () => {
-        xhr.abort();
-      });
+      // Lese Video als Blob und sende
+      fetch(file.uri)
+        .then(res => res.blob())
+        .then(blob => {
+          xhr.send(blob);
+        })
+        .catch(err => {
+          reject(new Error(`Fehler beim Lesen der Datei: ${err.message}`));
+        });
     });
   };
 
