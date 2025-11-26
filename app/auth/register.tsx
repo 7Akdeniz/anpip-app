@@ -2,6 +2,7 @@
  * 📝 REGISTRATION SCREEN
  * 
  * Moderne, sichere Registrierungsseite mit DSGVO-Compliance
+ * Video im Hintergrund mit transparentem Overlay
  */
 
 import React, { useState } from 'react';
@@ -22,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Colors, Spacing, BorderRadius } from '@/constants/Theme';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n/I18nContext';
+import { Video } from 'expo-av';
 
 // Country & Language Options
 const COUNTRIES = [
@@ -272,10 +274,45 @@ export default function RegisterScreen() {
   // ===========================
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View style={styles.container}>
+      {/* Video Background - Fullscreen */}
+      {Platform.OS === 'web' ? (
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0,
+          }}
+        >
+          <source src="https://cdn.pixabay.com/video/2024/05/20/212491_large.mp4" type="video/mp4" />
+        </video>
+      ) : (
+        <Video
+          source={{ uri: 'https://cdn.pixabay.com/video/2024/05/20/212491_large.mp4' }}
+          style={StyleSheet.absoluteFillObject}
+          shouldPlay
+          isLooping
+          isMuted
+          resizeMode="cover"
+        />
+      )}
+
+      {/* Schatten Overlay */}
+      <View style={styles.shadowOverlay} />
+
+      {/* Register Overlay Content */}
+      <KeyboardAvoidingView
+        style={styles.overlayContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -341,7 +378,7 @@ export default function RegisterScreen() {
                   value={firstName}
                   onChangeText={setFirstName}
                   placeholder="Max"
-                  placeholderTextColor={Colors.textSecondary}
+                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
                   autoCapitalize="words"
                   editable={!isLoading}
                 />
@@ -355,7 +392,7 @@ export default function RegisterScreen() {
                   value={lastName}
                   onChangeText={setLastName}
                   placeholder="Mustermann"
-                  placeholderTextColor={Colors.textSecondary}
+                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
                   autoCapitalize="words"
                   editable={!isLoading}
                 />
@@ -369,7 +406,7 @@ export default function RegisterScreen() {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="max@beispiel.de"
-                  placeholderTextColor={Colors.textSecondary}
+                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
@@ -386,7 +423,7 @@ export default function RegisterScreen() {
                     value={password}
                     onChangeText={setPassword}
                     placeholder="Min. 8 Zeichen, Groß-, Kleinbuchstaben, Zahl, Sonderzeichen"
-                    placeholderTextColor={Colors.textSecondary}
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     editable={!isLoading}
@@ -398,7 +435,7 @@ export default function RegisterScreen() {
                     <Ionicons
                       name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                       size={20}
-                      color={Colors.textSecondary}
+                      color="rgba(255, 255, 255, 0.6)"
                     />
                   </TouchableOpacity>
                 </View>
@@ -416,7 +453,7 @@ export default function RegisterScreen() {
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     placeholder="Passwort wiederholen"
-                    placeholderTextColor={Colors.textSecondary}
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
                     secureTextEntry={!showConfirmPassword}
                     autoCapitalize="none"
                     editable={!isLoading}
@@ -428,7 +465,7 @@ export default function RegisterScreen() {
                     <Ionicons
                       name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
                       size={20}
-                      color={Colors.textSecondary}
+                      color="rgba(255, 255, 255, 0.6)"
                     />
                   </TouchableOpacity>
                 </View>
@@ -454,7 +491,7 @@ export default function RegisterScreen() {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Land *</Text>
               <View style={styles.pickerWrapper}>
-                <Ionicons name="globe-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons name="globe-outline" size={20} color="rgba(255, 255, 255, 0.6)" />
                 <Text style={styles.pickerText}>{COUNTRIES.find(c => c.code === country)?.name}</Text>
                 {/* TODO: Implement proper country picker */}
               </View>
@@ -464,7 +501,7 @@ export default function RegisterScreen() {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Bevorzugte Sprache *</Text>
               <View style={styles.pickerWrapper}>
-                <Ionicons name="language-outline" size={20} color={Colors.textSecondary} />
+                <Ionicons name="language-outline" size={20} color="rgba(255, 255, 255, 0.6)" />
                 <Text style={styles.pickerText}>{LANGUAGES.find(l => l.code === language)?.name}</Text>
                 {/* TODO: Implement proper language picker */}
               </View>
@@ -478,7 +515,7 @@ export default function RegisterScreen() {
                 value={companyName}
                 onChangeText={setCompanyName}
                 placeholder="Für Business-Accounts"
-                placeholderTextColor={Colors.textSecondary}
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 editable={!isLoading}
               />
             </View>
@@ -531,7 +568,7 @@ export default function RegisterScreen() {
                 onPress={handleBack}
                 disabled={isLoading}
               >
-                <Ionicons name="arrow-back" size={20} color={Colors.text} />
+                <Ionicons name="arrow-back" size={20} color="#ffffff" />
                 <Text style={styles.backButtonText}>Zurück</Text>
               </TouchableOpacity>
 
@@ -559,18 +596,34 @@ export default function RegisterScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    position: 'relative',
+  },
+  shadowOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    zIndex: 1,
+  },
+  overlayContainer: {
+    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
   },
   scrollContent: {
     flexGrow: 1,
     padding: Spacing.xl,
     paddingTop: Spacing.xxl * 2,
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
@@ -579,27 +632,29 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: '#ffffff',
     marginBottom: Spacing.md,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.text,
+    color: '#ffffff',
     marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.error + '20',
+    backgroundColor: 'rgba(244, 67, 54, 0.2)',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.lg,
     gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 67, 54, 0.5)',
   },
   errorText: {
     flex: 1,
@@ -615,12 +670,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.primary,
+    backgroundColor: 'rgba(156, 39, 176, 0.3)',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   appleButton: {
-    backgroundColor: '#000',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   socialButtonText: {
     color: '#fff',
@@ -636,10 +693,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   dividerText: {
-    color: Colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
   },
   form: {
@@ -656,47 +713,47 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text,
+    color: '#ffffff',
   },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     padding: Spacing.md,
     fontSize: 16,
-    color: Colors.text,
+    color: '#ffffff',
   },
   passwordWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   eyeIcon: {
     padding: Spacing.md,
   },
   hint: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontStyle: 'italic',
   },
   pickerWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     padding: Spacing.md,
   },
   pickerText: {
     flex: 1,
     fontSize: 16,
-    color: Colors.text,
+    color: '#ffffff',
   },
   consentContainer: {
     gap: Spacing.md,
@@ -712,19 +769,19 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: 'rgba(156, 39, 176, 0.6)',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   checkboxText: {
     flex: 1,
     fontSize: 14,
-    color: Colors.text,
+    color: '#ffffff',
     lineHeight: 20,
   },
   link: {
@@ -741,25 +798,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   backButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text,
+    color: '#ffffff',
   },
   registerButton: {
     flex: 2,
-    backgroundColor: Colors.primary,
+    backgroundColor: 'rgba(156, 39, 176, 0.4)',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   registerButtonDisabled: {
     opacity: 0.6,
@@ -774,10 +833,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.primary,
+    backgroundColor: 'rgba(156, 39, 176, 0.4)',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     minHeight: 48,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   nextButtonText: {
     color: '#fff',
@@ -793,7 +854,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   loginLink: {
     fontSize: 14,

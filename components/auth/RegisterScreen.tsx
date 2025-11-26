@@ -148,7 +148,7 @@ export function RegisterScreen({ embedded, onSwitchToLogin }: RegisterScreenProp
           value={firstName}
           onChangeText={setFirstName}
           placeholder="Max"
-          placeholderTextColor="#999"
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
           autoCapitalize="words"
           autoCorrect={false}
           editable={!loading}
@@ -163,7 +163,7 @@ export function RegisterScreen({ embedded, onSwitchToLogin }: RegisterScreenProp
           value={lastName}
           onChangeText={setLastName}
           placeholder="Mustermann"
-          placeholderTextColor="#999"
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
           autoCapitalize="words"
           autoCorrect={false}
           editable={!loading}
@@ -178,7 +178,7 @@ export function RegisterScreen({ embedded, onSwitchToLogin }: RegisterScreenProp
           value={email}
           onChangeText={setEmail}
           placeholder="deine@email.com"
-          placeholderTextColor="#999"
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
@@ -194,7 +194,7 @@ export function RegisterScreen({ embedded, onSwitchToLogin }: RegisterScreenProp
           value={password}
           onChangeText={setPassword}
           placeholder="Mindestens 8 Zeichen"
-          placeholderTextColor="#999"
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
           secureTextEntry
           autoCapitalize="none"
           autoCorrect={false}
@@ -210,7 +210,7 @@ export function RegisterScreen({ embedded, onSwitchToLogin }: RegisterScreenProp
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           placeholder="Passwort wiederholen"
-          placeholderTextColor="#999"
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
           secureTextEntry
           autoCapitalize="none"
           autoCorrect={false}
@@ -296,24 +296,26 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#000',
+    color: '#ffffff',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#000',
-    backgroundColor: '#fff',
+    color: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   registerButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: 'rgba(156, 39, 176, 0.4)',
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   registerButtonDisabled: {
     opacity: 0.6,
@@ -332,11 +334,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E5E5E5',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   dividerText: {
     fontSize: 14,
-    color: '#999',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   socialContainer: {
     gap: 12,
@@ -345,17 +347,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 8,
     paddingVertical: 12,
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   socialButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#000',
+    color: '#ffffff',
   },
   switchContainer: {
     flexDirection: 'row',
@@ -365,11 +367,11 @@ const styles = StyleSheet.create({
   },
   switchText: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   switchLink: {
     fontSize: 14,
-    color: '#007AFF',
+    color: '#ffffff',
     fontWeight: '600',
   },
 });

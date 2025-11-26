@@ -4,8 +4,9 @@
  * 5 Haupt-Tabs: Feed, Explore, Upload, Notifications, Profile
  */
 
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors as ThemeColors } from '@/constants/Theme';
@@ -16,21 +17,36 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { VideoTimelineProvider } from '@/contexts/VideoTimelineContext';
 import { TabBarTimeline } from '@/components/TabBarTimeline';
 
+type UploadMenuAction = 'select' | 'public' | 'friends' | 'private';
+
+const UPLOAD_MENU_ITEMS: { action: UploadMenuAction; icon: string; label: string }[] = [
+  { action: 'select', icon: 'images', label: 'Video auswählen' },
+  { action: 'public', icon: 'globe', label: 'Öffentlich' },
+  { action: 'friends', icon: 'people', label: 'Freunde' },
+  { action: 'private', icon: 'lock-closed', label: 'Privat' },
+];
+
 export default function TabLayout() {
   const pathname = usePathname();
   const router = useRouter();
   const isMessagesScreen = pathname === '/messages';
   const { checkAuth } = useRequireAuth();
+  const [uploadMenuVisible, setUploadMenuVisible] = useState(false);
+  const [selectedVisibility, setSelectedVisibility] = useState<'public' | 'friends' | 'private'>('public');
+
+  useEffect(() => {
+    setUploadMenuVisible(false);
+  }, [pathname]);
 
   // Handler für Tab-Presses auf Messages-Screen
   const handleTabPress = (routeName: string, event: any) => {
     // Auth-Checks für geschützte Tabs
     if (routeName === 'upload') {
       if (!isMessagesScreen) {
-        // Auf Startseite/Feed: Zur Upload-Seite navigieren
+        // Auf Startseite/Feed: Upload-Menü öffnen statt navigieren
         event.preventDefault();
         if (checkAuth('upload')) {
-          router.push('/upload');
+          setUploadMenuVisible(true);
         }
       } else {
         // Auf Messages-Screen: Neue Nachricht
@@ -69,6 +85,44 @@ export default function TabLayout() {
         Alert.alert('Videoanruf', 'Videoanruffunktion wird gestartet...');
       }
     }
+  };
+  
+  const handleUploadMenuAction = async (action: UploadMenuAction) => {
+    if (action === 'select') {
+      // Galerie öffnen MIT der gewählten Visibility
+      setUploadMenuVisible(false);
+      await openVideoPicker();
+      return;
+    }
+    // Visibility ändern (Menü bleibt offen)
+    setSelectedVisibility(action as 'public' | 'friends' | 'private');
+  };
+
+  const openVideoPicker = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Berechtigung erforderlich', 'Bitte erlaube den Zugriff auf deine Galerie.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: false,
+      quality: 0.7,
+    });
+
+    if (result.canceled || !result.assets?.[0]) {
+      return;
+    }
+
+    // Video-Editor mit gewählter Visibility öffnen
+    router.push({
+      pathname: '/video-editor',
+      params: { 
+        videoUri: result.assets[0].uri,
+        visibility: selectedVisibility, // Hier wird die gewählte Visibility mitgegeben!
+      },
+    });
   };
   
   return (
@@ -257,8 +311,63 @@ export default function TabLayout() {
           />
         </Tabs>
         <TabBarTimeline />
+        <UploadMenuOverlay
+          visible={uploadMenuVisible}
+          onClose={() => setUploadMenuVisible(false)}
+          onSelect={handleUploadMenuAction}
+          selectedVisibility={selectedVisibility}
+        />
       </View>
     </VideoTimelineProvider>
+  );
+}
+
+function UploadMenuOverlay({
+  visible,
+  onClose,
+  onSelect,
+  selectedVisibility,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (action: UploadMenuAction) => void;
+  selectedVisibility: 'public' | 'friends' | 'private';
+}) {
+  if (!visible) return null;
+
+  return (
+    <View style={styles.uploadMenuOverlay} pointerEvents="box-none">
+      <TouchableOpacity
+        style={styles.uploadMenuBackdrop}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <View style={styles.uploadMenuBubble}>
+        {UPLOAD_MENU_ITEMS.map((item) => {
+          const isSelected = item.action === selectedVisibility;
+          return (
+            <TouchableOpacity
+              key={item.action}
+              style={[
+                styles.uploadMenuButton,
+              ]}
+              onPress={() => onSelect(item.action)}
+              accessibilityLabel={item.label}
+              accessibilityRole="button"
+            >
+              {isSelected && item.action !== 'select' && (
+                <View style={styles.selectionRing} />
+              )}
+              <Ionicons 
+                name={item.icon} 
+                size={50} 
+                color={isSelected && item.action !== 'select' ? '#00D9FF' : '#FFFFFF'} 
+              />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -266,5 +375,48 @@ const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
     position: 'relative',
+  },
+  uploadMenuOverlay: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 99,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadMenuBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+  },
+  uploadMenuBubble: {
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 0,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    flexDirection: 'row',
+    gap: 40,
+  },
+  uploadMenuButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    marginVertical: 0,
+    position: 'relative',
+  },
+  selectionRing: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: '#00D9FF',
+    shadowColor: '#00D9FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 15,
+    elevation: 10,
   },
 });

@@ -2,6 +2,7 @@
  * 🔐 LOGIN SCREEN
  * 
  * Moderne, sichere Login-Seite mit Social-Login-Support
+ * Video im Hintergrund mit transparentem Overlay
  */
 
 import React, { useState } from 'react';
@@ -23,6 +24,7 @@ import { Colors, Spacing, BorderRadius, Typography } from '@/constants/Theme';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n/I18nContext';
 import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton';
+import { Video } from 'expo-av';
 
 export default function LoginScreen() {
   const { signIn, signInWithProvider, state } = useAuth();
@@ -104,20 +106,55 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <View style={styles.container}>
+      {/* Video Background - Fullscreen */}
+      {Platform.OS === 'web' ? (
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0,
+          }}
+        >
+          <source src="https://cdn.pixabay.com/video/2024/05/20/212491_large.mp4" type="video/mp4" />
+        </video>
+      ) : (
+        <Video
+          source={{ uri: 'https://cdn.pixabay.com/video/2024/05/20/212491_large.mp4' }}
+          style={StyleSheet.absoluteFillObject}
+          shouldPlay
+          isLooping
+          isMuted
+          resizeMode="cover"
+        />
+      )}
+
+      {/* Schatten Overlay */}
+      <View style={styles.shadowOverlay} />
+
+      {/* Login Overlay Content */}
+      <KeyboardAvoidingView
+        style={styles.overlayContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>Anpip</Text>
-          <Text style={styles.title}>Willkommen zurück</Text>
-          <Text style={styles.subtitle}>Melde dich an, um fortzufahren</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.logo}>Anpip</Text>
+            <Text style={styles.title}>Willkommen zurück</Text>
+            <Text style={styles.subtitle}>Melde dich an, um fortzufahren</Text>
         </View>
 
         {/* Error Message */}
@@ -195,13 +232,13 @@ export default function LoginScreen() {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>E-Mail</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+              <Ionicons name="mail-outline" size={20} color="rgba(255, 255, 255, 0.6)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
                 placeholder="name@beispiel.de"
-                placeholderTextColor={Colors.textSecondary}
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
@@ -214,13 +251,13 @@ export default function LoginScreen() {
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Passwort</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={20} color="rgba(255, 255, 255, 0.6)" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Dein Passwort"
-                placeholderTextColor={Colors.textSecondary}
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoComplete="password"
@@ -233,7 +270,7 @@ export default function LoginScreen() {
                 <Ionicons
                   name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                   size={20}
-                  color={Colors.textSecondary}
+                  color="rgba(255, 255, 255, 0.6)"
                 />
               </TouchableOpacity>
             </View>
@@ -279,18 +316,34 @@ export default function LoginScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    position: 'relative',
+  },
+  shadowOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    zIndex: 1,
+  },
+  overlayContainer: {
+    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
   },
   scrollContent: {
     flexGrow: 1,
     padding: Spacing.xl,
     paddingTop: Spacing.xxl * 2,
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
@@ -299,27 +352,29 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: '#ffffff',
     marginBottom: Spacing.md,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.text,
+    color: '#ffffff',
     marginBottom: Spacing.xs,
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.error + '20',
+    backgroundColor: 'rgba(244, 67, 54, 0.2)',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.lg,
     gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 67, 54, 0.5)',
   },
   errorText: {
     flex: 1,
@@ -335,21 +390,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.primary,
+    backgroundColor: 'rgba(156, 39, 176, 0.3)',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   appleButton: {
-    backgroundColor: '#000',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   facebookButton: {
-    backgroundColor: '#1877F2',
+    backgroundColor: 'rgba(24, 119, 242, 0.3)',
   },
   microsoftButton: {
-    backgroundColor: '#00A4EF',
+    backgroundColor: 'rgba(0, 164, 239, 0.3)',
   },
   linkedinButton: {
-    backgroundColor: '#0A66C2',
+    backgroundColor: 'rgba(10, 102, 194, 0.3)',
   },
   socialButtonText: {
     color: '#fff',
@@ -365,10 +422,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   dividerText: {
-    color: Colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
   },
   form: {
@@ -381,15 +438,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text,
+    color: '#ffffff',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   inputIcon: {
     marginLeft: Spacing.md,
@@ -398,7 +455,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Spacing.md,
     fontSize: 16,
-    color: Colors.text,
+    color: '#ffffff',
   },
   eyeIcon: {
     padding: Spacing.md,
@@ -418,17 +475,17 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: 'rgba(156, 39, 176, 0.6)',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   rememberMeText: {
     fontSize: 14,
-    color: Colors.text,
+    color: '#ffffff',
   },
   forgotPassword: {
     fontSize: 14,
@@ -436,12 +493,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   loginButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: 'rgba(156, 39, 176, 0.4)',
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   loginButtonDisabled: {
     opacity: 0.6,
@@ -460,7 +519,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   signUpLink: {
     fontSize: 14,

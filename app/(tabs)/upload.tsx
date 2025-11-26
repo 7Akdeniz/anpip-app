@@ -234,6 +234,7 @@ function UploadScreenProtected() {
     muted: false,
   });
   const videoRef = useRef<Video>(null);
+  const visibilityParamRef = useRef<string | null>(null);
   const [showEditingDemo, setShowEditingDemo] = useState(true); // NEU: Demo-Modus
   const [selectedMusic, setSelectedMusic] = useState<string | null>(null); // Musik vom Editor
   const previewUri = editedVideoUri || videoUri;
@@ -250,6 +251,18 @@ function UploadScreenProtected() {
       setSelectedMusic(params.selectedMusic);
     }
   }, [params]);
+
+  useEffect(() => {
+    const rawVisibility = params.visibility;
+    if (!rawVisibility) return;
+    const visibilityValue = Array.isArray(rawVisibility) ? rawVisibility[0] : rawVisibility;
+    if (!visibilityValue) return;
+    const normalized = visibilityValue.toLowerCase();
+    if (!['public', 'friends', 'private'].includes(normalized)) return;
+    if (visibilityParamRef.current === normalized) return;
+    visibilityParamRef.current = normalized;
+    setVisibility(normalized as typeof visibility);
+  }, [params.visibility]);
 
   // Debug: Log Video State
   useEffect(() => {
@@ -969,372 +982,38 @@ function UploadScreenProtected() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
-    >
-      {/* Header Modern Apple Style */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Typography variant="h2" style={styles.headerTitle}>Video erstellen</Typography>
-          <Typography variant="caption" style={styles.headerSubtitle}>
-            Teile deine Kreativität mit der Welt
-          </Typography>
+    <View style={styles.container}>
+      {/* 4 Icons: Galerie, Öffentlich, Freunde, Privat */}
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', gap: 40, justifyContent: 'center' }}>
+          {/* Galerie - Video auswählen */}
+          <TouchableOpacity onPress={pickVideo} activeOpacity={0.7}>
+            <Ionicons name="images" size={50} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {/* Öffentlich */}
+          <TouchableOpacity onPress={() => {
+            setVisibility('public');
+          }} activeOpacity={0.7} style={visibility === 'public' && styles.visibilityCardActive}>
+            <Ionicons name="globe" size={50} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {/* Freunde */}
+          <TouchableOpacity onPress={() => {
+            setVisibility('friends');
+          }} activeOpacity={0.7} style={visibility === 'friends' && styles.visibilityCardActive}>
+            <Ionicons name="people" size={50} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {/* Privat */}
+          <TouchableOpacity onPress={() => {
+            setVisibility('private');
+          }} activeOpacity={0.7} style={visibility === 'private' && styles.visibilityCardActive}>
+            <Ionicons name="lock-closed" size={50} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </View>
-
-      <ScrollView 
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 20 }}
-        keyboardDismissMode="interactive"
-      >
-        {/* Upload Bereich mit großen Icons */}
-        <View style={styles.uploadSection}>
-          {uploading ? (
-            <View style={styles.uploadCard}>
-              <View style={styles.uploadingContent}>
-                <View style={styles.uploadIconContainer}>
-                  <ActivityIndicator size="large" color={Colors.primary} />
-                </View>
-                <Typography variant="h3" align="center" style={styles.uploadingTitle}>
-                  {uploadProgress || 'Video wird hochgeladen...'}
-                </Typography>
-                <Typography variant="caption" align="center" style={styles.uploadingSubtitle}>
-                  Bitte nicht schließen
-                </Typography>
-                
-                {/* Progress Icons */}
-                <View style={styles.progressIcons}>
-                  <View style={styles.progressIconItem}>
-                    <Ionicons name="cloud-upload" size={24} color={Colors.primary} />
-                    <Typography variant="caption" style={styles.progressText}>Upload</Typography>
-                  </View>
-                  <View style={styles.progressIconItem}>
-                    <Ionicons name="film" size={24} color="rgba(255,255,255,0.5)" />
-                    <Typography variant="caption" style={styles.progressText}>Verarbeiten</Typography>
-                  </View>
-                  <View style={styles.progressIconItem}>
-                    <Ionicons name="checkmark-circle" size={24} color="rgba(255,255,255,0.5)" />
-                    <Typography variant="caption" style={styles.progressText}>Fertig</Typography>
-                  </View>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <TouchableOpacity onPress={pickVideo} activeOpacity={0.8} style={styles.compactUploadButton}>
-              <LinearGradient
-                colors={['#00D9FF', '#B84FFF']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.compactUploadGradient}
-              >
-                <Ionicons name="videocam" size={22} color="#FFFFFF" />
-                <Typography variant="body" style={styles.compactUploadText}>Video auswählen</Typography>
-                <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Market Kategorie */}
-        <View style={styles.section}>
-          <TouchableOpacity 
-            onPress={() => {
-              const newValue = !isForMarket;
-              setIsForMarket(newValue);
-              if (!newValue) {
-                // Reset location and categories when disabling market
-                setSelectedLocation(null);
-                setSelectedCategory(null);
-                setSelectedSubcategory(null);
-              }
-            }} 
-            activeOpacity={0.7}
-          >
-            <View style={[
-              styles.marketToggleCard,
-              isForMarket && styles.marketToggleCardActive
-            ]}>
-              <View style={styles.marketToggleLeft}>
-                <Ionicons name="pricetag-outline" size={24} color="#FFFFFF" />
-                <View>
-                  <Typography variant="body" style={styles.visibilityTitle}>
-                    Für Market verwenden
-                  </Typography>
-                  <Typography variant="caption" style={styles.visibilitySubtitle}>
-                    Zeige dein Video im Marketplace
-                  </Typography>
-                </View>
-              </View>
-              {isForMarket ? (
-                <View style={styles.checkmarkCircleLarge}>
-                  <Ionicons name="checkmark" size={24} color="#FFFFFF" />
-                </View>
-              ) : (
-                <View style={styles.uncheckedCircle} />
-              )}
-            </View>
-          </TouchableOpacity>
-
-          {/* Stadt-Auswahl (Schritt 1) */}
-          {isForMarket && (
-            <View style={styles.locationContainer}>
-              <View style={styles.locationHeaderRow}>
-                <Typography variant="caption" style={styles.categoriesLabel}>
-                  1. Stadt wählen (Pflicht):
-                </Typography>
-                {selectedLocation && userLocation && (
-                  <View style={styles.autoDetectedBadge}>
-                    <Ionicons name="location" size={12} color={Colors.primary} />
-                    <Typography variant="caption" style={styles.autoDetectedText}>
-                      {userLocation.source === 'gps' ? 'GPS erkannt' : 
-                       userLocation.source === 'ip' ? 'IP erkannt' : 'Manuell'}
-                    </Typography>
-                  </View>
-                )}
-              </View>
-              <LocationAutocomplete
-                onSelect={(location) => {
-                  setSelectedLocation(location);
-                  console.log('📍 Standort gewählt:', location);
-                }}
-                placeholder="Stadt suchen (z.B. Berlin, Hamburg, Istanbul)..."
-                initialValue={selectedLocation}
-              />
-              {selectedLocation && (
-                <Typography variant="caption" style={styles.locationHint}>
-                  📍 {selectedLocation.displayName}
-                </Typography>
-              )}
-            </View>
-          )}
-
-          {/* Kategorien Auswahl (Schritt 2) */}
-          {isForMarket && selectedLocation && (
-            <View style={styles.categoriesContainer}>
-              <Typography variant="caption" style={styles.categoriesLabel}>
-                2. Wähle eine Kategorie:
-              </Typography>
-              <View style={styles.categoriesGrid}>
-                {MARKET_CATEGORIES.map((category) => (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={[
-                      styles.categoryCard,
-                      selectedCategory === category.id && styles.categoryCardActive
-                    ]}
-                    onPress={() => {
-                      setSelectedCategory(category.id);
-                      setSelectedSubcategory(null); // Reset subcategory when changing main category
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons 
-                      name={category.icon as any} 
-                      size={20} 
-                      color={selectedCategory === category.id ? Colors.primary : '#FFFFFF'} 
-                    />
-                    <Typography 
-                      variant="caption" 
-                      style={
-                        selectedCategory === category.id 
-                          ? styles.categoryTextActive 
-                          : styles.categoryText
-                      }
-                    >
-                      {category.name}
-                    </Typography>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Unterkategorien Auswahl (Schritt 3) */}
-          {isForMarket && selectedLocation && selectedCategory && (
-            <View style={styles.categoriesContainer}>
-              <Typography variant="caption" style={styles.categoriesLabel}>
-                3. Wähle eine Unterkategorie:
-              </Typography>
-              <View style={styles.subcategoriesGrid}>
-                {MARKET_CATEGORIES.find(cat => cat.id === selectedCategory)?.subcategories.map((subcategory, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.subcategoryChip,
-                      selectedSubcategory === subcategory && styles.subcategoryChipActive
-                    ]}
-                    onPress={() => setSelectedSubcategory(subcategory)}
-                    activeOpacity={0.7}
-                  >
-                    <Typography 
-                      variant="caption" 
-                      style={
-                        selectedSubcategory === subcategory 
-                          ? styles.subcategoryTextActive 
-                          : styles.subcategoryText
-                      }
-                    >
-                      {subcategory}
-                    </Typography>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Beschreibung */}
-        <View style={styles.section}>
-          <View style={styles.inputCard}>
-            <TextInput
-              style={styles.textArea}
-              placeholder="Erzähl mehr über dein Video... 
-Du kannst auch #hashtags und @mentions verwenden"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={6}
-              maxLength={2000}
-            />
-            <View style={styles.inputFooter}>
-              <View style={styles.inputIcons}>
-                <TouchableOpacity style={styles.inputIconButton}>
-                  <Ionicons name="happy-outline" size={22} color="rgba(255,255,255,0.6)" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.inputIconButton}>
-                  <Ionicons name="at-outline" size={22} color="rgba(255,255,255,0.6)" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.inputIconButton}>
-                  <Ionicons name="pricetag-outline" size={22} color="rgba(255,255,255,0.6)" />
-                </TouchableOpacity>
-              </View>
-              <Typography variant="caption" style={styles.charCount}>
-                {description.length}/2000
-              </Typography>
-            </View>
-          </View>
-        </View>
-
-        {/* Sichtbarkeit mit Icons */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="eye-outline" size={22} color="#FFFFFF" />
-            <Typography variant="h3" style={styles.sectionTitleInline}>Sichtbarkeit</Typography>
-          </View>
-          
-          <TouchableOpacity onPress={() => setVisibility('public')} activeOpacity={0.7}>
-            <View style={[
-              styles.visibilityCard,
-              visibility === 'public' && styles.visibilityCardActive
-            ]}>
-              <View style={styles.visibilityLeft}>
-                <Ionicons name="globe" size={24} color="#FFFFFF" />
-                <View>
-                  <Typography variant="body" style={styles.visibilityTitle}>Öffentlich</Typography>
-                  <Typography variant="caption" style={styles.visibilitySubtitle}>
-                    Jeder kann dein Video sehen
-                  </Typography>
-                </View>
-              </View>
-              {visibility === 'public' && (
-                <View style={styles.checkmarkCircle}>
-                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setVisibility('friends')} activeOpacity={0.7}>
-            <View style={[
-              styles.visibilityCard,
-              visibility === 'friends' && styles.visibilityCardActive
-            ]}>
-              <View style={styles.visibilityLeft}>
-                <Ionicons name="people" size={24} color="#FFFFFF" />
-                <View>
-                  <Typography variant="body" style={styles.visibilityTitle}>Freunde</Typography>
-                  <Typography variant="caption" style={styles.visibilitySubtitle}>
-                    Nur deine Freunde können es sehen
-                  </Typography>
-                </View>
-              </View>
-              {visibility === 'friends' && (
-                <View style={styles.checkmarkCircle}>
-                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setVisibility('private')} activeOpacity={0.7}>
-            <View style={[
-              styles.visibilityCard,
-              visibility === 'private' && styles.visibilityCardActive
-            ]}>
-              <View style={styles.visibilityLeft}>
-                <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
-                <View>
-                  <Typography variant="body" style={styles.visibilityTitle}>Privat</Typography>
-                  <Typography variant="caption" style={styles.visibilitySubtitle}>
-                    Nur du kannst es sehen
-                  </Typography>
-                </View>
-              </View>
-              {visibility === 'private' && (
-                <View style={styles.checkmarkCircle}>
-                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Veröffentlichen Button */}
-        <TouchableOpacity
-          style={[
-            styles.publishButton,
-            (uploading || !videoUri) && styles.publishButtonDisabled
-          ]}
-          onPress={() => {
-            console.log('🔘 Publish Button gedrückt - Platform:', Platform.OS);
-            console.log('🔘 uploading:', uploading);
-            console.log('🔘 videoUri:', videoUri);
-            if (!uploading && videoUri) {
-              uploadVideo();
-            } else {
-              console.warn('⚠️ Upload blockiert - uploading:', uploading, 'videoUri:', !!videoUri);
-            }
-          }}
-          disabled={uploading || !videoUri}
-          activeOpacity={0.8}
-        >
-          <View style={styles.publishButtonContent}>
-            {uploading ? (
-              <>
-                <ActivityIndicator size="small" color="#FFFFFF" />
-                <Typography variant="h3" style={styles.publishButtonText}>
-                  Wird hochgeladen...
-                </Typography>
-              </>
-            ) : (
-              <>
-                <Ionicons name="cloud-upload" size={24} color="#FFFFFF" />
-                <Typography variant="h3" style={styles.publishButtonText}>
-                  Veröffentlichen
-                </Typography>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -1342,7 +1021,7 @@ Du kannst auch #hashtags und @mentions verwenden"
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: 'transparent',
   },
   header: {
     paddingTop: 44,
@@ -1878,22 +1557,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-  // Visibility Cards
+  // Visibility Cards - TRANSPARENT, nur Icons
   visibilityCard: {
-    borderRadius: 14,
-    backgroundColor: 'rgba(28,28,30,0.95)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.15)',
-    padding: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    padding: 15,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
   },
   visibilityCardActive: {
-    backgroundColor: 'rgba(139,92,246,0.15)',
-    borderColor: Colors.primary,
-    borderWidth: 1.5,
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 30,
+    elevation: 15,
   },
   visibilityLeft: {
     flexDirection: 'row',
