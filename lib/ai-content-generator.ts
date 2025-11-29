@@ -9,16 +9,22 @@
 
 import OpenAI from 'openai';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import { createClient } from '@supabase/supabase-js';
+import { createServiceSupabase } from './supabase';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
 
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+let supabase = null as any;
+try {
+  supabase = createServiceSupabase();
+} catch (err) {
+  // Fallback to anon client if service key not present (read-only operations)
+  // Import synchronously to avoid top-level await issues
+  const supabaseModule = require('@supabase/supabase-js');
+  supabase = supabaseModule.createClient(
+    process.env.EXPO_PUBLIC_SUPABASE_URL || '',
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
+  );
+}
 
 export interface AIGeneratedContent {
   title: string;

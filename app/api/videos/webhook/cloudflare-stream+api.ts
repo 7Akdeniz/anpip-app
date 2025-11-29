@@ -14,13 +14,15 @@
  * 3. Secret setzen (CLOUDFLARE_WEBHOOK_SECRET in .env)
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { cloudflareStream } from '@/lib/cloudflare-stream';
+import { createServiceSupabase } from '../../../../lib/supabase';
 
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let supabase = null as any;
+try {
+  supabase = createServiceSupabase();
+} catch (err) {
+  console.error('Supabase service client not configured for Cloudflare webhook:', err);
+}
 
 // Webhook Secret für Sicherheit
 const WEBHOOK_SECRET = process.env.CLOUDFLARE_WEBHOOK_SECRET || '';

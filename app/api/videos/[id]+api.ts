@@ -8,17 +8,13 @@
  * Holt Details zu einem Video aus unserer DB + Cloudflare Stream
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../lib/supabase';
 import { cloudflareStream } from '@/lib/cloudflare-stream';
 
 // Für Expo Router API Routes
 export async function GET(request: Request, { id }: { id: string }) {
   try {
-    // Supabase Client
-    const supabase = createClient(
-      process.env.EXPO_PUBLIC_SUPABASE_URL || '',
-      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
-    );
+    // use shared supabase client from `lib/supabase`
 
     // Video aus DB holen
     const { data: video, error } = await supabase

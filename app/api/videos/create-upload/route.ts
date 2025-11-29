@@ -10,14 +10,18 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { createServiceSupabase } from '../../../../lib/supabase';
 import { cloudflareStream } from '@/lib/cloudflare-stream';
 import { VIDEO_LIMITS } from '@/config/video-limits';
 
 // Supabase Client mit Service Role für Backend-Operations
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+let supabase = null as any;
+try {
+  supabase = createServiceSupabase();
+} catch (err) {
+  console.error('Supabase service client not configured:', err);
+  // keep supabase as null; requests will fail later with a clear log
+}
 
 // Default Export für Expo Router
 export default async function handler(request: Request) {

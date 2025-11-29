@@ -8,7 +8,7 @@
  * Liefert eine Liste von fertigen Videos für den Feed
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../lib/supabase';
 
 export async function GET(request: Request) {
   try {
@@ -17,10 +17,7 @@ export async function GET(request: Request) {
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const userId = url.searchParams.get('userId'); // Optional: nur Videos eines Users
 
-    const supabase = createClient(
-      process.env.EXPO_PUBLIC_SUPABASE_URL || '',
-      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
-    );
+    // use shared supabase client from `lib/supabase`
 
     // Query bauen
     let query = supabase

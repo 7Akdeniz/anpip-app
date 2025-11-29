@@ -8,7 +8,7 @@
  * @version 1.0.0
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createServiceSupabase } from '../supabase';
 import OpenAI from 'openai';
 
 // ==========================================
@@ -133,10 +133,16 @@ export class AutopilotCore {
       ...config,
     };
 
-    this.supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    try {
+      this.supabase = createServiceSupabase();
+    } catch (err) {
+      // Fallback to anon client if service key missing (will be limited)
+      const { createClient } = require('@supabase/supabase-js');
+      this.supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || '',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
+      );
+    }
 
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,

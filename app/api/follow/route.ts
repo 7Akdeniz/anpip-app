@@ -1,9 +1,5 @@
-import { createClient, type User } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+import { type User } from '@supabase/supabase-js';
+import { supabase } from '../../../lib/supabase';
 
 const jsonResponse = (payload: Record<string, unknown>, status = 200) => {
   return new Response(JSON.stringify(payload), {

@@ -9,7 +9,7 @@
  * - Auto-Kapitel für lange Videos
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createServiceSupabase } from '../lib/supabase';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
@@ -17,10 +17,22 @@ import path from 'path';
 
 const execAsync = promisify(exec);
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let supabase = null as any;
+try {
+  supabase = createServiceSupabase();
+} catch (err) {
+  // Fallback: try old env names for backward compatibility
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    supabase = createClient(
+      process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
+    );
+  } catch (e) {
+    console.error('Unable to initialize Supabase client in worker:', err, e);
+    throw err;
+  }
+}
 
 const WORKER_ID = `worker_${process.env.HOSTNAME || Math.random().toString(36).substr(2, 9)}`;
 const POLL_INTERVAL = 5000; // 5 Sekunden
